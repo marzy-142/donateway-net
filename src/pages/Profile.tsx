@@ -101,6 +101,7 @@ const Profile: React.FC = () => {
       <section className="bg-bloodlink-pink py-8">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 md:grid-cols-12">
+            
             <Card className="md:col-span-4 lg:col-span-3">
               <CardHeader>
                 <div className="flex justify-center">
@@ -175,6 +176,7 @@ const Profile: React.FC = () => {
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div className="grid gap-4 md:grid-cols-2">
+                        
                         <div className="space-y-2">
                           <label htmlFor="name" className="text-sm font-medium">
                             Full Name
@@ -313,7 +315,7 @@ const Profile: React.FC = () => {
                             {isEditing ? (
                               <Select
                                 value={formData.isAvailable ? 'true' : 'false'}
-                                onValueChange={(value) => handleSelectChange('isAvailable', value === 'true')}
+                                onValueChange={(value) => handleSelectChange('isAvailable', value)}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select availability" />
