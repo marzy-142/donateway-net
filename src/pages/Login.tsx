@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Droplet } from 'lucide-react';
+import { Droplet, Lock, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -24,132 +25,109 @@ const Login: React.FC = () => {
     
     try {
       await login(email, password);
+      toast.success('Successfully logged in');
       navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
+      toast.error('Invalid email or password');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bloodlink-pink p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <Droplet className="h-12 w-12 text-bloodlink-red" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="m@example.com"
-                required
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Password
-                </label>
-                <Link to="/forgot-password" className="text-sm text-bloodlink-red hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center">
-                  <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                  Signing in...
-                </span>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-          </form>
-          
-          <div className="mt-4 text-center text-sm">
-            <p>Demo accounts:</p>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setEmail('admin@bloodlink.com');
-                  setPassword('admin123');
-                }}
-              >
-                Admin
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setEmail('donor@bloodlink.com');
-                  setPassword('donor123');
-                }}
-              >
-                Donor
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setEmail('recipient@bloodlink.com');
-                  setPassword('recipient123');
-                }}
-              >
-                Recipient
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setEmail('hospital@bloodlink.com');
-                  setPassword('hospital123');
-                }}
-              >
-                Hospital
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col">
-          <div className="text-sm text-center mt-2">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-bloodlink-red hover:underline">
-              Sign up
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-bloodlink-pink to-white">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <Droplet className="h-8 w-8 text-bloodlink-red" />
+              <span className="text-2xl font-bold">
+                Blood<span className="text-bloodlink-red">Link</span>
+              </span>
             </Link>
           </div>
-        </CardFooter>
-      </Card>
+          
+          <Card className="border-none shadow-xl">
+            <CardHeader className="space-y-1 pb-6">
+              <CardTitle className="text-2xl font-bold">Sign in to your account</CardTitle>
+              <CardDescription>
+                Enter your credentials to access the BloodLink platform
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-bloodlink-red" />
+                    Email
+                  </label>
+                  <Input
+                    id="email"
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-bloodlink-red" />
+                      Password
+                    </label>
+                    <Link to="/forgot-password" className="text-xs text-bloodlink-red hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    className="w-full"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                      Signing in...
+                    </span>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+            
+            <CardFooter className="flex flex-col border-t pt-6">
+              <div className="text-sm text-center">
+                Don't have an account?{' '}
+                <Link to="/register" className="font-medium text-bloodlink-red hover:underline">
+                  Create an account
+                </Link>
+              </div>
+              
+              <div className="mt-6 text-center text-xs text-gray-500">
+                By continuing, you agree to BloodLink's Terms of Service and Privacy Policy.
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

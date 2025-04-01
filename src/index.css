@@ -91,5 +91,76 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@layer components {
+  .hero-section {
+    @apply relative bg-gradient-to-br from-bloodlink-pink to-bloodlink-darkpink overflow-hidden;
+  }
+  
+  .hero-section::before {
+    content: "";
+    @apply absolute inset-0 bg-[url('/pattern.svg')] bg-repeat opacity-10;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-bloodlink-red to-red-600 bg-clip-text text-transparent;
+  }
+  
+  .feature-icon-container {
+    @apply h-16 w-16 rounded-full flex items-center justify-center mb-4 bg-gradient-to-br from-bloodlink-pink to-bloodlink-darkpink;
+  }
+  
+  .btn-primary {
+    @apply bg-bloodlink-red text-white hover:bg-bloodlink-red/90 transition-colors;
+  }
+  
+  .btn-outline {
+    @apply border border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10 transition-colors;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove App.css styles that might interfere */
+#root {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Additional animations */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.pulse-effect::before {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(227, 6, 19, 0.3);
+  z-index: -1;
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+/* Image enhancement */
+.image-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
