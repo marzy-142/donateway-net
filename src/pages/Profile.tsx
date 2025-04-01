@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +23,6 @@ const Profile: React.FC = () => {
       
       setLoading(true);
       try {
-        // Fetch donor or recipient data based on user role
         if (user.role === 'donor') {
           const donors = await mockDbService.getDonors();
           const donor = donors.find(d => d.userId === user.id) || null;
@@ -57,7 +55,11 @@ const Profile: React.FC = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'isAvailable') {
+      setFormData(prev => ({ ...prev, [name]: value === 'true' }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +68,6 @@ const Profile: React.FC = () => {
     if (!profileData) return;
     
     try {
-      // Update donor or recipient data based on user role
       if (user?.role === 'donor') {
         await mockDbService.updateDonor(profileData.id, formData);
       } else if (user?.role === 'recipient') {
@@ -100,7 +101,6 @@ const Profile: React.FC = () => {
       <section className="bg-bloodlink-pink py-8">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 md:grid-cols-12">
-            {/* Sidebar */}
             <Card className="md:col-span-4 lg:col-span-3">
               <CardHeader>
                 <div className="flex justify-center">
@@ -151,7 +151,6 @@ const Profile: React.FC = () => {
               </CardFooter>
             </Card>
             
-            {/* Main Content */}
             <div className="md:col-span-8 lg:col-span-9">
               <Card>
                 <CardHeader>
