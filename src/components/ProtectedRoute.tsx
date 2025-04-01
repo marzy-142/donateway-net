@@ -6,12 +6,12 @@ import { UserRole } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: UserRole[];
+  roles?: UserRole[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  allowedRoles = [] 
+  roles = [] 
 }) => {
   const { user, isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -30,7 +30,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Authenticated but role restricted
-  if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+  if (roles.length > 0 && user && !roles.includes(user.role)) {
     // Redirect based on role
     switch (user.role) {
       case 'donor':

@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { Toaster } from './components/ui/sonner';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from 'sonner';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -16,6 +16,33 @@ import Hospitals from './pages/Hospitals';
 import DonorHome from './pages/DonorHome';
 import Matches from './pages/Matches';
 import Referrals from './pages/Referrals';
+
+// New Role-Specific Pages
+import CompleteDonorProfile from './pages/donor/CompleteDonorProfile';
+import CompleteRecipientProfile from './pages/recipient/CompleteRecipientProfile';
+import RecipientHome from './pages/recipient/RecipientHome';
+import HospitalHome from './pages/hospital/HospitalHome';
+import AdminHome from './pages/admin/AdminHome';
+
+// ProfileCheck routes users to complete their profile if needed
+const ProfileCheck = ({ children }: { children: React.ReactNode }) => {
+  const { user, hasCompletedProfile } = useAuth();
+  
+  if (!user) return <Navigate to="/login" replace />;
+  
+  if (!hasCompletedProfile) {
+    switch (user.role) {
+      case 'donor':
+        return <Navigate to="/donor/complete-profile" replace />;
+      case 'recipient':
+        return <Navigate to="/recipient/complete-profile" replace />;
+      default:
+        break;
+    }
+  }
+  
+  return <>{children}</>;
+};
 
 const App = () => {
   return (
@@ -39,14 +66,68 @@ const App = () => {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Donor Routes */}
           <Route 
             path="/donor" 
             element={
-              <ProtectedRoute roles={['donor', 'admin']}>
-                <DonorHome />
+              <ProtectedRoute roles={['donor']}>
+                <ProfileCheck>
+                  <DonorHome />
+                </ProfileCheck>
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/donor/complete-profile" 
+            element={
+              <ProtectedRoute roles={['donor']}>
+                <CompleteDonorProfile />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Recipient Routes */}
+          <Route 
+            path="/recipient" 
+            element={
+              <ProtectedRoute roles={['recipient']}>
+                <ProfileCheck>
+                  <RecipientHome />
+                </ProfileCheck>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/recipient/complete-profile" 
+            element={
+              <ProtectedRoute roles={['recipient']}>
+                <CompleteRecipientProfile />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Hospital Routes */}
+          <Route 
+            path="/hospital" 
+            element={
+              <ProtectedRoute roles={['hospital']}>
+                <HospitalHome />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminHome />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Shared Routes */}
           <Route 
             path="/matches" 
             element={

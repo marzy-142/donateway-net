@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { toast } from 'sonner';
+import { mockDbService } from '@/services/mockDbService';
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +11,8 @@ interface AuthContextType {
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  hasCompletedProfile: boolean;
+  checkProfileCompletion: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,15 +57,48 @@ const mockUsers = [
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCompletedProfile, setHasCompletedProfile] = useState(false);
 
   useEffect(() => {
     // Check for saved user in localStorage
     const savedUser = localStorage.getItem('bloodlinkUser');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+      // Check if the user has completed their profile
+      checkProfileCompletion();
     }
     setLoading(false);
   }, []);
+
+  const checkProfileCompletion = async () => {
+    if (!user) return false;
+    
+    try {
+      switch (user.role) {
+        case 'donor':
+          const donors = await mockDbService.getDonors();
+          const isDonorComplete = donors.some(d => d.userId === user.id);
+          setHasCompletedProfile(isDonorComplete);
+          return isDonorComplete;
+        case 'recipient':
+          const recipients = await mockDbService.getRecipients();
+          const isRecipientComplete = recipients.some(r => r.userId === user.id);
+          setHasCompletedProfile(isRecipientComplete);
+          return isRecipientComplete;
+        case 'hospital':
+        case 'admin':
+          // Hospitals and admins don't need profile completion
+          setHasCompletedProfile(true);
+          return true;
+        default:
+          setHasCompletedProfile(false);
+          return false;
+      }
+    } catch (error) {
+      console.error("Error checking profile completion:", error);
+      return false;
+    }
+  };
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -83,6 +119,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Save user to localStorage
       localStorage.setItem('bloodlinkUser', JSON.stringify(userWithoutPassword));
+      
+      // Check if the user has completed their profile setup
+      await checkProfileCompletion();
       
       toast.success('Login successful');
     } catch (error) {
@@ -124,6 +163,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save user to localStorage
       localStorage.setItem('bloodlinkUser', JSON.stringify(userWithoutPassword));
       
+      // New users need to complete their profile
+      setHasCompletedProfile(false);
+      
       toast.success('Registration successful');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed');
@@ -141,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Clear user from state
       setUser(null);
+      setHasCompletedProfile(false);
       
       // Remove user from localStorage
       localStorage.removeItem('bloodlinkUser');
@@ -162,6 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         isAuthenticated: !!user,
+        hasCompletedProfile,
+        checkProfileCompletion,
       }}
     >
       {children}
