@@ -98,7 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.success("Login successful!");
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Invalid email or password");
+      // More descriptive error message
+      const errorMessage = error instanceof Error ? 
+        `Login failed: ${error.message}` : 
+        "Login failed. Please check your credentials.";
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -126,7 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.success("Registration successful!");
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error(error instanceof Error ? error.message : "Registration failed");
+      // More descriptive error message
+      const errorMessage = error instanceof Error ? 
+        `Registration failed: ${error.message}` : 
+        "Registration failed. Please try again.";
+      toast.error(errorMessage);
       throw error;
     }
   };
