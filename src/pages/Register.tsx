@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Droplet } from 'lucide-react';
 import { UserRole } from '@/types';
+import { toast } from 'sonner';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -45,7 +46,7 @@ const Register: React.FC = () => {
           navigate('/recipient/complete-profile');
           break;
         case 'hospital':
-          navigate('/hospital/dashboard');
+          navigate('/hospital');
           break;
         default:
           navigate('/');
@@ -54,6 +55,7 @@ const Register: React.FC = () => {
     } catch (error) {
       console.error('Registration error:', error);
       setError(error instanceof Error ? error.message : 'Registration failed');
+      toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsSubmitting(false);
     }

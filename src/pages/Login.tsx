@@ -12,7 +12,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -26,7 +26,31 @@ const Login: React.FC = () => {
     try {
       await login(email, password);
       toast.success('Successfully logged in');
-      navigate(from, { replace: true });
+      
+      // We'll handle redirect in useEffect based on user role
+      const storedUser = localStorage.getItem("bloodlink_user");
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        switch (userData.role) {
+          case 'donor':
+            navigate('/donor');
+            break;
+          case 'recipient':
+            navigate('/recipient');
+            break;
+          case 'hospital':
+            navigate('/hospital');
+            break;
+          case 'admin':
+            navigate('/dashboard');
+            break;
+          default:
+            navigate('/');
+            break;
+        }
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Invalid email or password');
