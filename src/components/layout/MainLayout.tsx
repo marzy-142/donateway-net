@@ -29,11 +29,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     { name: "Hospitals", href: "/hospitals" },
   ];
 
+  // Update userNavigation to only include matches for admin users
   const userNavigation = [
-    { name: "Profile", href: "/profile" },
-    { name: "Matches", href: "/matches" },
-    { name: "Referrals", href: "/referrals" },
+    { name: "Profile", href: "/profile" }
   ];
+  
+  // Add admin-only navigation items
+  if (user?.role === 'admin') {
+    userNavigation.push({ name: "Matches", href: "/matches" });
+  }
+  
+  // Add shared navigation items
+  if (user && (user.role === 'donor' || user.role === 'recipient' || user.role === 'admin')) {
+    userNavigation.push({ name: "Referrals", href: "/referrals" });
+  }
 
   const getInitial = (name?: string): string => {
     return name && name.length > 0 ? name[0].toUpperCase() : '?';

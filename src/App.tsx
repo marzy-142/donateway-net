@@ -127,15 +127,17 @@ const App = () => {
             } 
           />
           
-          {/* Shared Routes */}
+          {/* Update Matches to be admin-only */}
           <Route 
             path="/matches" 
             element={
-              <ProtectedRoute roles={['donor', 'admin']}>
+              <ProtectedRoute roles={['admin']}>
                 <Matches />
               </ProtectedRoute>
             } 
           />
+          
+          {/* Shared Routes */}
           <Route 
             path="/referrals" 
             element={

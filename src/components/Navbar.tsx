@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,19 +57,18 @@ const Navbar: React.FC = () => {
               {isAuthenticated && (
                 <>
                   {user?.role === 'admin' && (
-                    <NavigationMenuItem>
-                      <Link to="/dashboard" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
-                        Dashboard
-                      </Link>
-                    </NavigationMenuItem>
-                  )}
-                  
-                  {(user?.role === 'donor' || user?.role === 'admin') && (
-                    <NavigationMenuItem>
-                      <Link to="/matches" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
-                        Matches
-                      </Link>
-                    </NavigationMenuItem>
+                    <>
+                      <NavigationMenuItem>
+                        <Link to="/dashboard" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                          Dashboard
+                        </Link>
+                      </NavigationMenuItem>
+                      <NavigationMenuItem>
+                        <Link to="/matches" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                          Matches
+                        </Link>
+                      </NavigationMenuItem>
+                    </>
                   )}
                   
                   {(user?.role === 'donor' || user?.role === 'recipient' || user?.role === 'admin') && (
@@ -148,15 +146,14 @@ const Navbar: React.FC = () => {
             {isAuthenticated && (
               <>
                 {user?.role === 'admin' && (
-                  <Link to="/dashboard" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
-                    Dashboard
-                  </Link>
-                )}
-                
-                {(user?.role === 'donor' || user?.role === 'admin') && (
-                  <Link to="/matches" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
-                    Matches
-                  </Link>
+                  <>
+                    <Link to="/dashboard" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+                      Dashboard
+                    </Link>
+                    <Link to="/matches" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+                      Matches
+                    </Link>
+                  </>
                 )}
                 
                 {(user?.role === 'donor' || user?.role === 'recipient' || user?.role === 'admin') && (
