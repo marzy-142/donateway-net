@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -34,6 +35,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     { name: "Referrals", href: "/referrals" },
   ];
 
+  const getInitial = (name?: string): string => {
+    return name && name.length > 0 ? name[0].toUpperCase() : '?';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -43,7 +48,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
                 <Link to="/" className="text-2xl font-bold text-primary">
-                  DonateWay
+                  BloodLink
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -73,8 +78,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                       className="relative h-8 w-8 rounded-full"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+                        {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                        <AvatarFallback>{getInitial(user.name)}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
@@ -152,8 +157,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+                      {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                      <AvatarFallback>{getInitial(user.name)}</AvatarFallback>
                     </Avatar>
                   </div>
                   <div className="ml-3">
@@ -214,7 +219,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       <footer className="bg-white border-t">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} DonateWay. All rights reserved.
+            © {new Date().getFullYear()} BloodLink. All rights reserved.
           </div>
         </div>
       </footer>

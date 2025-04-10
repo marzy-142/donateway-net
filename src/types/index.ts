@@ -9,6 +9,8 @@ export interface User {
   name: string;
   role: UserRole;
   createdAt: Date;
+  hasCompletedProfile?: boolean;
+  avatar?: string;
 }
 
 export interface Donor {

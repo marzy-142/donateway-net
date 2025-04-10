@@ -23,17 +23,21 @@ interface AuthContextType {
   updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
-interface RegisterData {
-  name: string;
+interface MockUser {
+  id: string;
   email: string;
   password: string;
+  name: string;
   role: UserRole;
+  createdAt: Date;
+  hasCompletedProfile: boolean;
+  avatar?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock user data for demo purposes
-const mockUsers = [
+const mockUsers: MockUser[] = [
   {
     id: "1",
     email: "admin@bloodlink.com",
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: foundUser.role,
       createdAt: foundUser.createdAt,
       hasCompletedProfile: foundUser.hasCompletedProfile,
+      avatar: foundUser.avatar,
     };
 
     // Store user in local storage
@@ -148,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mockUsers.push({
       ...newUser,
       password,
+      hasCompletedProfile: false,
     });
 
     // Store user in local storage (without password)
@@ -172,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Update in mock users array (in a real app, this would update the database)
     const userIndex = mockUsers.findIndex(u => u.id === user.id);
     if (userIndex >= 0) {
-      mockUsers[userIndex] = { ...mockUsers[userIndex], ...data };
+      mockUsers[userIndex] = { ...mockUsers[userIndex], ...data } as MockUser;
     }
 
     // Update local storage
