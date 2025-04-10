@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Droplet, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { auth } from '@/lib/firebase';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -25,31 +26,37 @@ const Login: React.FC = () => {
     
     try {
       await login(email, password);
-      toast.success('Successfully logged in');
       
-      // We'll handle redirect in useEffect based on user role
-      const storedUser = localStorage.getItem("bloodlink_user");
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        switch (userData.role) {
-          case 'donor':
-            navigate('/donor');
-            break;
-          case 'recipient':
-            navigate('/recipient');
-            break;
-          case 'hospital':
-            navigate('/hospital');
-            break;
-          case 'admin':
-            navigate('/dashboard');
-            break;
-          default:
-            navigate('/');
-            break;
+      // Get the user data from localStorage after login
+      const storedUserData = localStorage.getItem(`bloodlink_user_${auth.currentUser?.uid}`);
+      let role = 'donor';
+      
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          role = userData.role;
+        } catch (error) {
+          console.error("Failed to parse stored user data:", error);
         }
-      } else {
-        navigate(from, { replace: true });
+      }
+      
+      // Redirect based on role
+      switch (role) {
+        case 'donor':
+          navigate('/donor');
+          break;
+        case 'recipient':
+          navigate('/recipient');
+          break;
+        case 'hospital':
+          navigate('/hospital');
+          break;
+        case 'admin':
+          navigate('/dashboard');
+          break;
+        default:
+          navigate(from, { replace: true });
+          break;
       }
     } catch (error) {
       console.error('Login error:', error);

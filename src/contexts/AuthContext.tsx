@@ -6,11 +6,11 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile as firebaseUpdateProfile } from "firebase/auth";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
-import { mockDbService } from "@/services/mockDbService";
 import { useNavigate } from "react-router-dom";
-import { validatePasswordStrength, verifyPassword, hashPassword } from "@/lib/security/passwordUtils";
+import { auth } from "@/lib/firebase";
 
 interface AuthContextType {
   user: User | null;
@@ -23,168 +23,166 @@ interface AuthContextType {
   updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
-interface MockUser {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: UserRole;
-  createdAt: Date;
-  hasCompletedProfile: boolean;
-  avatar?: string;
-}
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demo purposes
-const mockUsers: MockUser[] = [
-  {
-    id: "1",
-    email: "admin@bloodlink.com",
-    password: "Admin123!",
-    name: "Admin User",
-    role: "admin" as UserRole,
-    createdAt: new Date(),
-    hasCompletedProfile: true,
-  },
-  {
-    id: "2",
-    email: "donor@bloodlink.com",
-    password: "Donor123!",
-    name: "John Donor",
-    role: "donor" as UserRole,
-    createdAt: new Date(),
-    hasCompletedProfile: true,
-  },
-  {
-    id: "3",
-    email: "recipient@bloodlink.com",
-    password: "Recipient123!",
-    name: "Mary Patient",
-    role: "recipient" as UserRole,
-    createdAt: new Date(),
-    hasCompletedProfile: true,
-  },
-  {
-    id: "4",
-    email: "hospital@bloodlink.com",
-    password: "Hospital123!",
-    name: "City General Hospital",
-    role: "hospital" as UserRole,
-    createdAt: new Date(),
-    hasCompletedProfile: true,
-  },
-];
+// Convert Firebase user to our app's user format
+const formatUser = (firebaseUser: FirebaseUser, role: UserRole = 'donor', hasCompleted: boolean = false): User => {
+  return {
+    id: firebaseUser.uid,
+    email: firebaseUser.email || '',
+    name: firebaseUser.displayName || '',
+    role: role,
+    createdAt: new Date(firebaseUser.metadata.creationTime || Date.now()),
+    hasCompletedProfile: hasCompleted,
+    avatar: firebaseUser.photoURL || undefined,
+  };
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Check for stored user in local storage
+  // Check for stored user role and profile completion
   useEffect(() => {
-    const storedUser = localStorage.getItem("bloodlink_user");
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error("Failed to parse stored user:", error);
-        localStorage.removeItem("bloodlink_user");
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        // Get stored user data from localStorage to include role and profile status
+        const storedUserData = localStorage.getItem(`bloodlink_user_${firebaseUser.uid}`);
+        let role: UserRole = 'donor';
+        let hasCompletedProfile = false;
+        
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData);
+            role = userData.role || 'donor';
+            hasCompletedProfile = userData.hasCompletedProfile || false;
+          } catch (error) {
+            console.error("Failed to parse stored user data:", error);
+          }
+        }
+        
+        const formattedUser = formatUser(firebaseUser, role, hasCompletedProfile);
+        setUser(formattedUser);
+      } else {
+        setUser(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // For demo purposes, find the user in our mock data
-    const foundUser = mockUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-
-    if (!foundUser) {
-      throw new Error("Invalid email or password");
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Get stored user data to include role and profile status
+      const storedUserData = localStorage.getItem(`bloodlink_user_${firebaseUser.uid}`);
+      let role: UserRole = 'donor';
+      let hasCompletedProfile = false;
+      
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          role = userData.role || 'donor';
+          hasCompletedProfile = userData.hasCompletedProfile || false;
+        } catch (error) {
+          console.error("Failed to parse stored user data:", error);
+        }
+      }
+      
+      const formattedUser = formatUser(firebaseUser, role, hasCompletedProfile);
+      setUser(formattedUser);
+      toast.success("Login successful!");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Invalid email or password");
+      throw error;
     }
-
-    // Create a user object without the password
-    const userData: User = {
-      id: foundUser.id,
-      name: foundUser.name,
-      email: foundUser.email,
-      role: foundUser.role,
-      createdAt: foundUser.createdAt,
-      hasCompletedProfile: foundUser.hasCompletedProfile,
-      avatar: foundUser.avatar,
-    };
-
-    // Store user in local storage
-    localStorage.setItem("bloodlink_user", JSON.stringify(userData));
-    setUser(userData);
-    toast.success("Login successful!");
   };
 
   const register = async (email: string, password: string, name: string, role: UserRole) => {
-    // Check if user already exists
-    const userExists = mockUsers.some(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (userExists) {
-      throw new Error("User with this email already exists");
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Update profile with display name
+      await firebaseUpdateProfile(firebaseUser, {
+        displayName: name
+      });
+      
+      // Store additional user data in localStorage
+      const userData = {
+        role,
+        hasCompletedProfile: false
+      };
+      
+      localStorage.setItem(`bloodlink_user_${firebaseUser.uid}`, JSON.stringify(userData));
+      
+      const formattedUser = formatUser(firebaseUser, role, false);
+      setUser(formattedUser);
+      toast.success("Registration successful!");
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error(error instanceof Error ? error.message : "Registration failed");
+      throw error;
     }
-
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.message);
-    }
-
-    // Create new user
-    const newUser: User = {
-      id: `${mockUsers.length + 1}`,
-      name,
-      email,
-      role,
-      createdAt: new Date(),
-      hasCompletedProfile: false,
-    };
-
-    // Add to mock users (in a real app, this would be saved to a database)
-    mockUsers.push({
-      ...newUser,
-      password,
-      hasCompletedProfile: false,
-    });
-
-    // Store user in local storage (without password)
-    localStorage.setItem("bloodlink_user", JSON.stringify(newUser));
-    setUser(newUser);
-    toast.success("Registration successful!");
   };
 
-  const logout = () => {
-    localStorage.removeItem("bloodlink_user");
-    setUser(null);
-    navigate("/");
-    toast.success("Logged out successfully");
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      navigate("/");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out");
+    }
   };
 
   const updateProfile = async (data: Partial<User>) => {
     if (!user) throw new Error("Not authenticated");
 
-    // Update the user data
-    const updatedUser = { ...user, ...data };
-    
-    // Update in mock users array (in a real app, this would update the database)
-    const userIndex = mockUsers.findIndex(u => u.id === user.id);
-    if (userIndex >= 0) {
-      mockUsers[userIndex] = { ...mockUsers[userIndex], ...data } as MockUser;
+    try {
+      // Update Firebase displayName if name is provided
+      if (data.name && auth.currentUser) {
+        await firebaseUpdateProfile(auth.currentUser, {
+          displayName: data.name
+        });
+      }
+      
+      // Update local storage with role and profile status
+      const storedUserData = localStorage.getItem(`bloodlink_user_${user.id}`);
+      let userData = {
+        role: user.role,
+        hasCompletedProfile: user.hasCompletedProfile || false
+      };
+      
+      if (storedUserData) {
+        try {
+          userData = JSON.parse(storedUserData);
+        } catch (error) {
+          console.error("Failed to parse stored user data:", error);
+        }
+      }
+      
+      // Update with new data
+      if (data.role) userData.role = data.role;
+      if (data.hasCompletedProfile !== undefined) userData.hasCompletedProfile = data.hasCompletedProfile;
+      
+      localStorage.setItem(`bloodlink_user_${user.id}`, JSON.stringify(userData));
+      
+      // Update local user state
+      setUser(prev => prev ? { ...prev, ...data } : null);
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast.error("Failed to update profile");
+      throw error;
     }
-
-    // Update local storage
-    localStorage.setItem("bloodlink_user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    toast.success("Profile updated successfully");
   };
 
   const isAuthenticated = user !== null;
