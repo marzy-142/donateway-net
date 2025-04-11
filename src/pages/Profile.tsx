@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,12 +8,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockDbService } from '@/services/mockDbService';
 import { Donor, Recipient, BloodType } from '@/types';
-import { User, Heart, Droplet, Calendar } from 'lucide-react';
+import { User, Heart, Droplet, Calendar, Shield, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  const [profileData, setProfileData] = useState<Donor | Recipient | null>(null);
+  const [profileData, setProfileData] = useState<Donor | Recipient | any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<any>({});
@@ -23,20 +24,57 @@ const Profile: React.FC = () => {
       
       setLoading(true);
       try {
-        if (user.role === 'donor') {
+        // Handle admin profile differently
+        if (user.role === 'admin') {
+          setProfileData({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: 'admin',
+            department: 'Blood Bank Management',
+            phone: formData.phone || '', // Default empty if not set yet
+            accessLevel: 'Full Access',
+            joinDate: user.createdAt
+          });
+          setFormData({
+            name: user.name,
+            email: user.email,
+            phone: '',
+            department: 'Blood Bank Management',
+            accessLevel: 'Full Access',
+          });
+        } 
+        else if (user.role === 'donor') {
           const donors = await mockDbService.getDonors();
           const donor = donors.find(d => d.userId === user.id) || null;
           setProfileData(donor);
           if (donor) {
             setFormData({ ...donor });
           }
-        } else if (user.role === 'recipient') {
+        } 
+        else if (user.role === 'recipient') {
           const recipients = await mockDbService.getRecipients();
           const recipient = recipients.find(r => r.userId === user.id) || null;
           setProfileData(recipient);
           if (recipient) {
             setFormData({ ...recipient });
           }
+        }
+        else if (user.role === 'hospital') {
+          // Handle hospital profile
+          const hospitals = await mockDbService.getHospitals();
+          const hospital = hospitals.find(h => h.id === user.id) || null;
+          setProfileData(hospital || {
+            id: user.id,
+            name: user.name,
+            location: '',
+            phone: '',
+          });
+          setFormData(hospital || {
+            name: user.name,
+            location: '',
+            phone: '',
+          });
         }
       } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -68,19 +106,40 @@ const Profile: React.FC = () => {
     if (!profileData) return;
     
     try {
-      if (user?.role === 'donor') {
+      if (user?.role === 'admin') {
+        // Update admin profile - for admin we just update the local state
+        // and potentially store in localStorage since we're using mock data
+        setProfileData(prev => ({ ...prev, ...formData }));
+        // Update user name if changed
+        if (formData.name !== user.name) {
+          await mockDbService.updateUser(user.id, { name: formData.name });
+        }
+        toast.success('Admin profile updated successfully');
+      }
+      else if (user?.role === 'donor') {
         await mockDbService.updateDonor(profileData.id, formData);
-      } else if (user?.role === 'recipient') {
+        setProfileData(prev => ({ ...prev!, ...formData }));
+      } 
+      else if (user?.role === 'recipient') {
         await mockDbService.updateRecipient(profileData.id, formData);
+        setProfileData(prev => ({ ...prev!, ...formData }));
+      }
+      else if (user?.role === 'hospital') {
+        await mockDbService.updateHospital(profileData.id, formData);
+        setProfileData(prev => ({ ...prev!, ...formData }));
       }
       
-      setProfileData(prev => ({ ...prev!, ...formData }));
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     }
+  };
+
+  const handleCompleteProfile = () => {
+    setIsEditing(true);
+    toast.info('Please fill in your profile information and save');
   };
 
   if (!user) {
@@ -111,16 +170,32 @@ const Profile: React.FC = () => {
                 </div>
                 <CardTitle className="text-center mt-2">{user.name}</CardTitle>
                 <CardDescription className="text-center">
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  {user.role === 'admin' ? 'Administrator' : 
+                   user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </CardDescription>
               </CardHeader>
               
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Heart className="h-5 w-5 text-bloodlink-red" />
-                    <span>{user.role === 'donor' ? 'Donor since' : 'Recipient since'} {new Date(user.createdAt).toLocaleDateString()}</span>
-                  </div>
+                  {user.role === 'admin' ? (
+                    <>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Shield className="h-5 w-5 text-bloodlink-red" />
+                        <span>Administrator since {new Date(user.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Mail className="h-5 w-5 text-bloodlink-red" />
+                        <span>{user.email}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Heart className="h-5 w-5 text-bloodlink-red" />
+                      <span>{user.role === 'donor' ? 'Donor since' : 
+                             user.role === 'recipient' ? 'Recipient since' : 
+                             user.role === 'hospital' ? 'Hospital since' : ''} {new Date(user.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
                   
                   {user.role === 'donor' && profileData && (
                     <div className="flex items-center space-x-2 text-gray-600">
@@ -133,10 +208,17 @@ const Profile: React.FC = () => {
                     </div>
                   )}
                   
-                  {profileData && (
+                  {profileData && profileData.bloodType && (
                     <div className="flex items-center space-x-2 text-gray-600">
                       <Droplet className="h-5 w-5 text-bloodlink-red" />
                       <span>Blood Type: {profileData.bloodType}</span>
+                    </div>
+                  )}
+
+                  {profileData && profileData.phone && (
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Phone className="h-5 w-5 text-bloodlink-red" />
+                      <span>Phone: {profileData.phone}</span>
                     </div>
                   )}
                 </div>
@@ -169,7 +251,10 @@ const Profile: React.FC = () => {
                   ) : !profileData ? (
                     <div className="text-center py-8">
                       <p className="text-gray-600">Profile data not found. Please complete your profile.</p>
-                      <Button className="mt-4 bg-bloodlink-red hover:bg-bloodlink-red/80">
+                      <Button 
+                        className="mt-4 bg-bloodlink-red hover:bg-bloodlink-red/80"
+                        onClick={handleCompleteProfile}
+                      >
                         Complete Profile
                       </Button>
                     </div>
@@ -190,148 +275,296 @@ const Profile: React.FC = () => {
                           />
                         </div>
                         
-                        {user.role === 'donor' && (
-                          <div className="space-y-2">
-                            <label htmlFor="age" className="text-sm font-medium">
-                              Age
-                            </label>
-                            <Input
-                              id="age"
-                              name="age"
-                              type="number"
-                              value={formData.age || ''}
-                              onChange={handleInputChange}
-                              disabled={!isEditing}
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="bloodType" className="text-sm font-medium">
-                            Blood Type
-                          </label>
-                          {isEditing ? (
-                            <Select
-                              value={formData.bloodType || ''}
-                              onValueChange={(value) => handleSelectChange('bloodType', value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select blood type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="A+">A+</SelectItem>
-                                <SelectItem value="A-">A-</SelectItem>
-                                <SelectItem value="B+">B+</SelectItem>
-                                <SelectItem value="B-">B-</SelectItem>
-                                <SelectItem value="AB+">AB+</SelectItem>
-                                <SelectItem value="AB-">AB-</SelectItem>
-                                <SelectItem value="O+">O+</SelectItem>
-                                <SelectItem value="O-">O-</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input
-                              value={formData.bloodType || ''}
-                              disabled
-                            />
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="phone" className="text-sm font-medium">
-                            Phone Number
-                          </label>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            value={formData.phone || ''}
-                            onChange={handleInputChange}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="email" className="text-sm font-medium">
-                            Email
-                          </label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={formData.email || user.email}
-                            onChange={handleInputChange}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        
-                        {user.role === 'recipient' && (
-                          <div className="space-y-2">
-                            <label htmlFor="urgency" className="text-sm font-medium">
-                              Urgency
-                            </label>
-                            {isEditing ? (
-                              <Select
-                                value={formData.urgency || ''}
-                                onValueChange={(value) => handleSelectChange('urgency', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select urgency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="normal">Normal</SelectItem>
-                                  <SelectItem value="urgent">Urgent</SelectItem>
-                                  <SelectItem value="critical">Critical</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
+                        {/* Admin-specific fields */}
+                        {user.role === 'admin' && (
+                          <>
+                            <div className="space-y-2">
+                              <label htmlFor="department" className="text-sm font-medium">
+                                Department
+                              </label>
                               <Input
-                                value={(formData.urgency || '').charAt(0).toUpperCase() + (formData.urgency || '').slice(1)}
-                                disabled
+                                id="department"
+                                name="department"
+                                value={formData.department || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
                               />
-                            )}
-                          </div>
-                        )}
-                        
-                        {user.role === 'recipient' && (
-                          <div className="space-y-2">
-                            <label htmlFor="preferredHospital" className="text-sm font-medium">
-                              Preferred Hospital
-                            </label>
-                            <Input
-                              id="preferredHospital"
-                              name="preferredHospital"
-                              value={formData.preferredHospital || ''}
-                              onChange={handleInputChange}
-                              disabled={!isEditing}
-                            />
-                          </div>
-                        )}
-                        
-                        {user.role === 'donor' && (
-                          <div className="space-y-2">
-                            <label htmlFor="isAvailable" className="text-sm font-medium">
-                              Availability
-                            </label>
-                            {isEditing ? (
-                              <Select
-                                value={formData.isAvailable ? 'true' : 'false'}
-                                onValueChange={(value) => handleSelectChange('isAvailable', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select availability" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="true">Available</SelectItem>
-                                  <SelectItem value="false">Not Available</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="phone" className="text-sm font-medium">
+                                Phone Number
+                              </label>
                               <Input
-                                value={formData.isAvailable ? 'Available' : 'Not Available'}
-                                disabled
+                                id="phone"
+                                name="phone"
+                                value={formData.phone || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
                               />
-                            )}
-                          </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label htmlFor="email" className="text-sm font-medium">
+                                Email
+                              </label>
+                              <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email || user.email}
+                                onChange={handleInputChange}
+                                disabled={true}  // Admin email is not editable
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label htmlFor="accessLevel" className="text-sm font-medium">
+                                Access Level
+                              </label>
+                              <Input
+                                id="accessLevel"
+                                name="accessLevel"
+                                value={formData.accessLevel || ''}
+                                disabled={true}  // Access level is not editable
+                              />
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Donor-specific fields */}
+                        {user.role === 'donor' && (
+                          <>
+                            <div className="space-y-2">
+                              <label htmlFor="age" className="text-sm font-medium">
+                                Age
+                              </label>
+                              <Input
+                                id="age"
+                                name="age"
+                                type="number"
+                                value={formData.age || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="bloodType" className="text-sm font-medium">
+                                Blood Type
+                              </label>
+                              {isEditing ? (
+                                <Select
+                                  value={formData.bloodType || ''}
+                                  onValueChange={(value) => handleSelectChange('bloodType', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select blood type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="A+">A+</SelectItem>
+                                    <SelectItem value="A-">A-</SelectItem>
+                                    <SelectItem value="B+">B+</SelectItem>
+                                    <SelectItem value="B-">B-</SelectItem>
+                                    <SelectItem value="AB+">AB+</SelectItem>
+                                    <SelectItem value="AB-">AB-</SelectItem>
+                                    <SelectItem value="O+">O+</SelectItem>
+                                    <SelectItem value="O-">O-</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  value={formData.bloodType || ''}
+                                  disabled
+                                />
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="phone" className="text-sm font-medium">
+                                Phone Number
+                              </label>
+                              <Input
+                                id="phone"
+                                name="phone"
+                                value={formData.phone || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="email" className="text-sm font-medium">
+                                Email
+                              </label>
+                              <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email || user.email}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="isAvailable" className="text-sm font-medium">
+                                Availability
+                              </label>
+                              {isEditing ? (
+                                <Select
+                                  value={formData.isAvailable ? 'true' : 'false'}
+                                  onValueChange={(value) => handleSelectChange('isAvailable', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select availability" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="true">Available</SelectItem>
+                                    <SelectItem value="false">Not Available</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  value={formData.isAvailable ? 'Available' : 'Not Available'}
+                                  disabled
+                                />
+                              )}
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Recipient-specific fields */}
+                        {user.role === 'recipient' && (
+                          <>
+                            <div className="space-y-2">
+                              <label htmlFor="bloodType" className="text-sm font-medium">
+                                Blood Type
+                              </label>
+                              {isEditing ? (
+                                <Select
+                                  value={formData.bloodType || ''}
+                                  onValueChange={(value) => handleSelectChange('bloodType', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select blood type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="A+">A+</SelectItem>
+                                    <SelectItem value="A-">A-</SelectItem>
+                                    <SelectItem value="B+">B+</SelectItem>
+                                    <SelectItem value="B-">B-</SelectItem>
+                                    <SelectItem value="AB+">AB+</SelectItem>
+                                    <SelectItem value="AB-">AB-</SelectItem>
+                                    <SelectItem value="O+">O+</SelectItem>
+                                    <SelectItem value="O-">O-</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  value={formData.bloodType || ''}
+                                  disabled
+                                />
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="phone" className="text-sm font-medium">
+                                Phone Number
+                              </label>
+                              <Input
+                                id="phone"
+                                name="phone"
+                                value={formData.phone || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="email" className="text-sm font-medium">
+                                Email
+                              </label>
+                              <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email || user.email}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="urgency" className="text-sm font-medium">
+                                Urgency
+                              </label>
+                              {isEditing ? (
+                                <Select
+                                  value={formData.urgency || ''}
+                                  onValueChange={(value) => handleSelectChange('urgency', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select urgency" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                    <SelectItem value="critical">Critical</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  value={(formData.urgency || '').charAt(0).toUpperCase() + (formData.urgency || '').slice(1)}
+                                  disabled
+                                />
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="preferredHospital" className="text-sm font-medium">
+                                Preferred Hospital
+                              </label>
+                              <Input
+                                id="preferredHospital"
+                                name="preferredHospital"
+                                value={formData.preferredHospital || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Hospital-specific fields */}
+                        {user.role === 'hospital' && (
+                          <>
+                            <div className="space-y-2">
+                              <label htmlFor="location" className="text-sm font-medium">
+                                Location
+                              </label>
+                              <Input
+                                id="location"
+                                name="location"
+                                value={formData.location || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label htmlFor="phone" className="text-sm font-medium">
+                                Phone Number
+                              </label>
+                              <Input
+                                id="phone"
+                                name="phone"
+                                value={formData.phone || ''}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                          </>
                         )}
                       </div>
                       
