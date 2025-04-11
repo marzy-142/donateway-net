@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +47,9 @@ const Register: React.FC = () => {
           break;
         case 'hospital':
           navigate('/hospital');
+          break;
+        case 'admin':
+          navigate('/dashboard');
           break;
         default:
           navigate('/');
@@ -137,7 +141,7 @@ const Register: React.FC = () => {
               <RadioGroup 
                 value={role} 
                 onValueChange={(value) => setRole(value as UserRole)}
-                className="flex space-x-2 pt-2"
+                className="flex flex-wrap gap-2 pt-2"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="donor" id="donor" />
@@ -150,6 +154,10 @@ const Register: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="hospital" id="hospital" />
                   <Label htmlFor="hospital">Hospital</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="admin" id="admin" />
+                  <Label htmlFor="admin">Admin</Label>
                 </div>
               </RadioGroup>
             </div>
