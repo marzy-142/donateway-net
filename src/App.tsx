@@ -16,6 +16,7 @@ import Hospitals from './pages/Hospitals';
 import DonorHome from './pages/DonorHome';
 import Matches from './pages/Matches';
 import Referrals from './pages/Referrals';
+import ViewMatch from './pages/admin/ViewMatch';
 
 // New Role-Specific Pages
 import CompleteDonorProfile from './pages/donor/CompleteDonorProfile';
@@ -127,12 +128,20 @@ const App = () => {
             } 
           />
           
-          {/* Update Matches to be admin-only */}
+          {/* Admin-only match management routes */}
           <Route 
             path="/matches" 
             element={
               <ProtectedRoute roles={['admin']}>
                 <Matches />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/matches/:matchId" 
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <ViewMatch />
               </ProtectedRoute>
             } 
           />
