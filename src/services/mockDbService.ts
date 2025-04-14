@@ -1,3 +1,4 @@
+
 import { Donor, Hospital, Recipient, User, BloodType } from "@/types";
 
 export const mockDbService = {
@@ -92,6 +93,17 @@ export const mockDbService = {
     }
   },
 
+  getDonorById: async (donorId: string): Promise<Donor | null> => {
+    try {
+      const donors = await mockDbService.getDonors();
+      const donor = donors.find(d => d.id === donorId);
+      return donor || null;
+    } catch (error) {
+      console.error("Error fetching donor by ID:", error);
+      return null;
+    }
+  },
+
   getRecipients: async (): Promise<Recipient[]> => {
     try {
       const storedRecipients = localStorage.getItem('bloodlink_recipients');
@@ -99,6 +111,7 @@ export const mockDbService = {
         return JSON.parse(storedRecipients);
       }
 
+      // Only create mock recipients if none exist
       const mockRecipients: Recipient[] = [
         {
           id: 'recipient-1',
@@ -156,6 +169,30 @@ export const mockDbService = {
       return mockRecipients;
     } catch (error) {
       console.error("Error fetching recipients:", error);
+      return [];
+    }
+  },
+
+  getRecipientById: async (recipientId: string): Promise<Recipient | null> => {
+    try {
+      const recipients = await mockDbService.getRecipients();
+      const recipient = recipients.find(r => r.id === recipientId);
+      return recipient || null;
+    } catch (error) {
+      console.error("Error fetching recipient by ID:", error);
+      return null;
+    }
+  },
+
+  getCompatibleRecipients: async (donorBloodType: BloodType): Promise<Recipient[]> => {
+    try {
+      const recipients = await mockDbService.getRecipients();
+      const compatibleRecipients = recipients.filter(recipient => 
+        adminService.isBloodCompatible(donorBloodType, recipient.bloodType)
+      );
+      return compatibleRecipients;
+    } catch (error) {
+      console.error("Error fetching compatible recipients:", error);
       return [];
     }
   },

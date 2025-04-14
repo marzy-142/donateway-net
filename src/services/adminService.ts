@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { mockDbService } from "./mockDbService";
 import { Donor, Hospital, Recipient, User, BloodType, UserRole } from "@/types";
@@ -55,10 +56,17 @@ export const adminService = {
       const donors = await mockDbService.getDonors();
       const recipients = await mockDbService.getRecipients();
       
+      if (!donors.length || !recipients.length) {
+        console.log("No donors or recipients found for matches");
+        return [];
+      }
+
       // Generate matches based on blood type compatibility
       const matches = [];
       
       for (const donor of donors) {
+        if (!donor.isAvailable) continue; // Skip unavailable donors
+        
         const compatibleRecipients = recipients.filter(recipient => 
           this.isBloodCompatible(donor.bloodType, recipient.bloodType)
         );
@@ -66,14 +74,15 @@ export const adminService = {
         for (const recipient of compatibleRecipients) {
           matches.push({
             id: `match-${donor.id}-${recipient.id}`,
-            donor,
-            recipient,
+            donor: donor,
+            recipient: recipient,
             status: Math.random() > 0.5 ? 'approved' : 'pending',
             matchDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
           });
         }
       }
       
+      console.log(`Generated ${matches.length} potential matches`, matches);
       return matches;
     } catch (error) {
       console.error("Error fetching matches:", error);
