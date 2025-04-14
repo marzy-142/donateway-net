@@ -1,214 +1,273 @@
+import { Donor, Hospital, Recipient, User, BloodType } from "@/types";
 
-import { Donor, Recipient, Hospital, Referral, BloodType } from '@/types';
-
-// Mock donors data
-const mockDonors: Donor[] = [
-  {
-    id: '1',
-    userId: '2',
-    name: 'John Villaces',
-    age: 28,
-    bloodType: 'A+',
-    phone: '123-456-7890',
-    email: 'john.villaces@example.com',
-    isAvailable: true,
-  },
-  {
-    id: '2',
-    userId: '5',
-    name: 'John Donor',
-    age: 35,
-    bloodType: 'A+',
-    phone: '234-567-8901',
-    email: 'john.donor@example.com',
-    isAvailable: true,
-  },
-  {
-    id: '3',
-    userId: '6',
-    name: 'Mariella Doreen Lagura Cañete',
-    age: 42,
-    bloodType: 'A+',
-    phone: '345-678-9012',
-    email: 'mariella.canete@example.com',
-    isAvailable: true,
-  },
-  {
-    id: '4',
-    userId: '7',
-    name: 'Miki',
-    age: 29,
-    bloodType: 'A+',
-    phone: '456-789-0123',
-    email: 'miki@example.com',
-    isAvailable: true,
-  },
-  {
-    id: '5',
-    userId: '8',
-    name: 'im_semi',
-    age: 31,
-    bloodType: 'AB+',
-    phone: '567-890-1234',
-    email: 'im_semi@example.com',
-    isAvailable: true,
-  },
-];
-
-// Mock recipients data
-const mockRecipients: Recipient[] = [
-  {
-    id: '1',
-    userId: '3',
-    name: 'Mary Patient',
-    bloodType: 'A+',
-    phone: '987-654-3210',
-    preferredHospital: 'City General Hospital',
-    urgency: 'normal',
-  },
-  {
-    id: '2',
-    userId: '9',
-    name: 'jinjja',
-    bloodType: 'AB+',
-    phone: '876-543-2109',
-    preferredHospital: 'Saint Mary\'s Medical Center',
-    urgency: 'urgent',
-  },
-  {
-    id: '3',
-    userId: '10',
-    name: 'sfadfasf',
-    bloodType: 'O+',
-    phone: '765-432-1098',
-    preferredHospital: 'HealthFirst Medical Center',
-    urgency: 'critical',
-  },
-];
-
-// Mock hospitals data
-const mockHospitals: Hospital[] = [
-  {
-    id: '1',
-    name: 'City General Hospital',
-    location: 'Metro City',
-    phone: '123-456-7890',
-    availableBloodTypes: ['A+', 'B+', 'O+', 'AB+'],
-  },
-  {
-    id: '2',
-    name: 'Saint Mary\'s Medical Center',
-    location: 'Green Valley',
-    phone: '987-654-3210',
-    availableBloodTypes: ['A-', 'B-', 'O-', 'AB-'],
-  },
-  {
-    id: '3',
-    name: 'Red Cross Blood Bank',
-    location: 'Downtown',
-    phone: '555-888-7777',
-    availableBloodTypes: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-  },
-  {
-    id: '4',
-    name: 'HealthFirst Medical Center',
-    location: 'Riverside',
-    phone: '444-333-2222',
-    availableBloodTypes: ['A+', 'B+', 'O+'],
-  },
-];
-
-// Mock referrals data
-const mockReferrals: Referral[] = [
-  {
-    id: '1',
-    donorId: '1',
-    recipientId: '3',
-    hospitalId: '4',
-    status: 'pending',
-    createdAt: new Date(2023, 2, 25, 10, 55, 2),
-  },
-];
-
-// Blood compatibility chart (which blood types can donate to which)
-const bloodCompatibility: Record<BloodType, BloodType[]> = {
-  'A+': ['A+', 'AB+'],
-  'A-': ['A+', 'A-', 'AB+', 'AB-'],
-  'B+': ['B+', 'AB+'],
-  'B-': ['B+', 'B-', 'AB+', 'AB-'],
-  'AB+': ['AB+'],
-  'AB-': ['AB+', 'AB-'],
-  'O+': ['A+', 'B+', 'AB+', 'O+'],
-  'O-': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-};
-
-// Mock database service with methods to interact with the data
 export const mockDbService = {
-  // Donor methods
-  getDonors: () => Promise.resolve([...mockDonors]),
-  getDonorById: (id: string) => Promise.resolve(mockDonors.find(d => d.id === id) || null),
-  createDonor: (donor: Omit<Donor, 'id'>) => {
-    const newDonor = { ...donor, id: `${mockDonors.length + 1}` };
-    mockDonors.push(newDonor);
-    return Promise.resolve(newDonor);
+  getDonors: async (): Promise<Donor[]> => {
+    try {
+      const storedDonors = localStorage.getItem('bloodlink_donors');
+      if (storedDonors) {
+        return JSON.parse(storedDonors);
+      }
+
+      const mockDonors: Donor[] = [
+        {
+          id: 'donor-1',
+          userId: 'user-1',
+          name: 'Alice Smith',
+          age: 28,
+          bloodType: 'A+',
+          phone: '123-456-7890',
+          email: 'alice.smith@example.com',
+          address: '123 Main St',
+          isAvailable: true,
+        },
+        {
+          id: 'donor-2',
+          userId: 'user-2',
+          name: 'Bob Johnson',
+          age: 34,
+          bloodType: 'B-',
+          phone: '987-654-3210',
+          email: 'bob.johnson@example.com',
+          address: '456 Elm St',
+          isAvailable: false,
+        },
+        {
+          id: 'donor-3',
+          userId: 'user-3',
+          name: 'Charlie Brown',
+          age: 22,
+          bloodType: 'O+',
+          phone: '555-123-4567',
+          email: 'charlie.brown@example.com',
+          address: '789 Oak St',
+          isAvailable: true,
+        },
+        {
+          id: 'donor-4',
+          userId: 'user-4',
+          name: 'Diana Miller',
+          age: 41,
+          bloodType: 'AB+',
+          phone: '111-222-3333',
+          email: 'diana.miller@example.com',
+          address: '101 Pine St',
+          isAvailable: false,
+        },
+        {
+          id: 'donor-5',
+          userId: 'user-5',
+          name: 'Ethan Davis',
+          age: 29,
+          bloodType: 'A-',
+          phone: '444-555-6666',
+          email: 'ethan.davis@example.com',
+          address: '222 Cedar St',
+          isAvailable: true,
+        },
+      ];
+
+      localStorage.setItem('bloodlink_donors', JSON.stringify(mockDonors));
+      return mockDonors;
+    } catch (error) {
+      console.error("Error fetching donors:", error);
+      return [];
+    }
   },
-  updateDonor: (id: string, data: Partial<Donor>) => {
-    const index = mockDonors.findIndex(d => d.id === id);
-    if (index === -1) return Promise.reject(new Error('Donor not found'));
-    mockDonors[index] = { ...mockDonors[index], ...data };
-    return Promise.resolve(mockDonors[index]);
+
+  createDonor: async (donor: Omit<Donor, 'id'>): Promise<Donor> => {
+    try {
+      const newDonor: Donor = {
+        id: `donor-${Date.now()}`,
+        ...donor,
+      };
+
+      const donors = await mockDbService.getDonors();
+      donors.push(newDonor);
+      localStorage.setItem('bloodlink_donors', JSON.stringify(donors));
+
+      return newDonor;
+    } catch (error) {
+      console.error("Error creating donor:", error);
+      throw error;
+    }
   },
-  
-  // Recipient methods
-  getRecipients: () => Promise.resolve([...mockRecipients]),
-  getRecipientById: (id: string) => Promise.resolve(mockRecipients.find(r => r.id === id) || null),
-  createRecipient: (recipient: Omit<Recipient, 'id'>) => {
-    const newRecipient = { ...recipient, id: `${mockRecipients.length + 1}` };
-    mockRecipients.push(newRecipient);
-    return Promise.resolve(newRecipient);
+
+  getRecipients: async (): Promise<Recipient[]> => {
+    try {
+      const storedRecipients = localStorage.getItem('bloodlink_recipients');
+      if (storedRecipients) {
+        return JSON.parse(storedRecipients);
+      }
+
+      const mockRecipients: Recipient[] = [
+        {
+          id: 'recipient-1',
+          userId: 'user-6',
+          name: 'Sophia White',
+          bloodType: 'B+',
+          phone: '222-333-4444',
+          preferredHospital: 'City General Hospital',
+          urgency: 'urgent',
+          medicalCondition: 'Anemia',
+        },
+        {
+          id: 'recipient-2',
+          userId: 'user-7',
+          name: 'Liam Green',
+          bloodType: 'O-',
+          phone: '333-444-5555',
+          preferredHospital: 'County Medical Center',
+          urgency: 'critical',
+          medicalCondition: 'Surgery required',
+        },
+        {
+          id: 'recipient-3',
+          userId: 'user-8',
+          name: 'Olivia Taylor',
+          bloodType: 'AB-',
+          phone: '444-555-7777',
+          preferredHospital: 'State University Hospital',
+          urgency: 'normal',
+          medicalCondition: 'Routine checkup',
+        },
+        {
+          id: 'recipient-4',
+          userId: 'user-9',
+          name: 'Noah Anderson',
+          bloodType: 'A+',
+          phone: '555-666-8888',
+          preferredHospital: 'Community Hospital',
+          urgency: 'urgent',
+          medicalCondition: 'Accident victim',
+        },
+        {
+          id: 'recipient-5',
+          userId: 'user-10',
+          name: 'Isabella Thomas',
+          bloodType: 'B-',
+          phone: '666-777-9999',
+          preferredHospital: 'Regional Trauma Center',
+          urgency: 'critical',
+          medicalCondition: 'Emergency transfusion',
+        },
+      ];
+
+      localStorage.setItem('bloodlink_recipients', JSON.stringify(mockRecipients));
+      return mockRecipients;
+    } catch (error) {
+      console.error("Error fetching recipients:", error);
+      return [];
+    }
   },
-  updateRecipient: (id: string, data: Partial<Recipient>) => {
-    const index = mockRecipients.findIndex(r => r.id === id);
-    if (index === -1) return Promise.reject(new Error('Recipient not found'));
-    mockRecipients[index] = { ...mockRecipients[index], ...data };
-    return Promise.resolve(mockRecipients[index]);
+
+  createRecipient: async (recipient: Omit<Recipient, 'id'>): Promise<Recipient> => {
+    try {
+      const newRecipient: Recipient = {
+        id: `recipient-${Date.now()}`,
+        ...recipient,
+      };
+
+      const recipients = await mockDbService.getRecipients();
+      recipients.push(newRecipient);
+      localStorage.setItem('bloodlink_recipients', JSON.stringify(recipients));
+
+      return newRecipient;
+    } catch (error) {
+      console.error("Error creating recipient:", error);
+      throw error;
+    }
   },
-  
-  // Hospital methods
-  getHospitals: () => Promise.resolve([...mockHospitals]),
-  getHospitalById: (id: string) => Promise.resolve(mockHospitals.find(h => h.id === id) || null),
-  
-  // Referral methods
-  getReferrals: () => Promise.resolve([...mockReferrals]),
-  createReferral: (referral: Omit<Referral, 'id' | 'createdAt'>) => {
-    const newReferral = { 
-      ...referral, 
-      id: `${mockReferrals.length + 1}`, 
-      createdAt: new Date()
-    };
-    mockReferrals.push(newReferral);
-    return Promise.resolve(newReferral);
+
+  getHospitals: async (): Promise<Hospital[]> => {
+    try {
+      const storedHospitals = localStorage.getItem('bloodlink_hospitals');
+      if (storedHospitals) {
+        return JSON.parse(storedHospitals);
+      }
+
+      const mockHospitals: Hospital[] = [
+        {
+          id: 'hospital-1',
+          name: 'City General Hospital',
+          location: 'Downtown',
+          phone: '777-888-9999',
+          availableBloodTypes: ['A+', 'B+', 'O-', 'AB+'],
+        },
+        {
+          id: 'hospital-2',
+          name: 'County Medical Center',
+          location: 'Suburb',
+          phone: '888-999-0000',
+          availableBloodTypes: ['A-', 'B-', 'O+', 'AB-'],
+        },
+        {
+          id: 'hospital-3',
+          name: 'State University Hospital',
+          location: 'University Area',
+          phone: '999-000-1111',
+          availableBloodTypes: ['A+', 'B-', 'O-', 'AB+'],
+        },
+      ];
+
+      localStorage.setItem('bloodlink_hospitals', JSON.stringify(mockHospitals));
+      return mockHospitals;
+    } catch (error) {
+      console.error("Error fetching hospitals:", error);
+      return [];
+    }
   },
-  updateReferralStatus: (id: string, status: Referral['status']) => {
-    const index = mockReferrals.findIndex(r => r.id === id);
-    if (index === -1) return Promise.reject(new Error('Referral not found'));
-    mockReferrals[index] = { ...mockReferrals[index], status };
-    return Promise.resolve(mockReferrals[index]);
+
+  getReferrals: async () => {
+    try {
+      // Try to get existing referrals from localStorage
+      const storedReferrals = localStorage.getItem('bloodlink_referrals');
+      
+      if (storedReferrals) {
+        return JSON.parse(storedReferrals);
+      }
+      
+      // If no referrals exist, create some mock referrals
+      const donors = await mockDbService.getDonors();
+      const recipients = await mockDbService.getRecipients();
+      const hospitals = await mockDbService.getHospitals();
+      
+      if (donors.length === 0 || recipients.length === 0) {
+        return [];
+      }
+      
+      // Generate some mock referrals
+      const mockReferrals = [];
+      
+      for (let i = 0; i < Math.min(donors.length, recipients.length); i++) {
+        const donor = donors[i];
+        const recipient = recipients[i];
+        const hospital = hospitals[Math.floor(Math.random() * hospitals.length)];
+        
+        // Only create referrals if blood types are compatible
+        if (adminService.isBloodCompatible(donor.bloodType, recipient.bloodType)) {
+          mockReferrals.push({
+            id: `ref-${donor.id}-${recipient.id}`,
+            donorId: donor.id,
+            donorName: donor.name,
+            recipientId: recipient.id,
+            recipientName: recipient.name,
+            hospitalId: hospital.id,
+            hospitalName: hospital.name,
+            status: Math.random() > 0.5 ? 'approved' : 'pending',
+            createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
+          });
+        }
+      }
+      
+      // Store the mock referrals
+      localStorage.setItem('bloodlink_referrals', JSON.stringify(mockReferrals));
+      
+      return mockReferrals;
+    } catch (error) {
+      console.error("Error getting referrals:", error);
+      return [];
+    }
   },
-  
-  // Blood compatibility method
-  getCompatibleRecipients: (donorBloodType: BloodType) => {
-    const compatibleBloodTypes = bloodCompatibility[donorBloodType];
-    const compatibleRecipients = mockRecipients.filter(
-      recipient => compatibleBloodTypes.includes(recipient.bloodType)
-    );
-    return Promise.resolve(compatibleRecipients);
-  },
-  
-  getCompatibleDonors: (recipientBloodType: BloodType) => {
-    const compatibleDonors = mockDonors.filter(donor => 
-      bloodCompatibility[donor.bloodType].includes(recipientBloodType)
-    );
-    return Promise.resolve(compatibleDonors);
-  }
 };
+
+import { adminService } from "./adminService";
