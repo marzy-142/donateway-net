@@ -29,9 +29,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Authenticated but role restricted
-  if (roles.length > 0 && user && !roles.includes(user.role)) {
-    // Redirect based on role
+  // If no roles are specified, allow access to any authenticated user
+  if (roles.length === 0) {
+    return <>{children}</>;
+  }
+
+  // Check if user has the required role
+  if (user && roles.includes(user.role)) {
+    return <>{children}</>;
+  }
+
+  // Redirect based on user's role if they don't have access
+  if (user) {
     switch (user.role) {
       case 'donor':
         return <Navigate to="/donor" replace />;
@@ -46,7 +55,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  return <>{children}</>;
+  // Fallback to home page
+  return <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;
