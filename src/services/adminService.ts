@@ -1,37 +1,46 @@
-
 import { toast } from "sonner";
 import { mockDbService } from "./mockDbService";
-import { Donor, Hospital, Recipient, User, BloodType } from "@/types";
+import { Donor, Hospital, Recipient, User, BloodType, UserRole } from "@/types";
 
-// Admin service to handle all admin operations
 export const adminService = {
   // User management
   async getAllUsers(): Promise<User[]> {
     try {
-      // In a real application, this would fetch from a database
-      // For now, simulate with localStorage
+      // Collect users from localStorage
       const users: User[] = [];
+      
+      // Iterate through all localStorage keys
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
+        
+        // Check for user-related keys
         if (key?.startsWith('bloodlink_user_')) {
           try {
             const userId = key.replace('bloodlink_user_', '');
             const userData = JSON.parse(localStorage.getItem(key) || '{}');
             
-            // Create a mock user object
-            users.push({
+            // Ensure all required fields are present
+            const user: User = {
               id: userId,
-              email: `user${userId.substring(0, 4)}@example.com`,
+              email: userData.email || `user${userId.substring(0, 4)}@example.com`,
               name: userData.name || `User ${userId.substring(0, 4)}`,
-              role: userData.role || 'donor',
-              createdAt: new Date(),
+              role: userData.role || 'donor', // Default to donor if no role
+              createdAt: new Date(userData.createdAt || Date.now()),
               hasCompletedProfile: userData.hasCompletedProfile || false,
-            });
+              avatar: userData.avatar // Optional avatar
+            };
+            
+            // Add the user to the list
+            users.push(user);
           } catch (error) {
             console.error("Error parsing user data:", error);
           }
         }
       }
+      
+      // Log the retrieved users for debugging
+      console.log('Retrieved Users:', users);
+      
       return users;
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -211,3 +220,5 @@ export const adminService = {
     return compatibility[donorType].includes(recipientType);
   }
 };
+
+export default adminService;
