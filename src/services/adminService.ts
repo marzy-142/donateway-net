@@ -36,7 +36,6 @@ export const adminService = {
         }
       }
       
-      console.log('Retrieved Users:', users);
       return users;
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -51,7 +50,6 @@ export const adminService = {
       const recipients = await mockDbService.getRecipients();
       
       if (!donors.length || !recipients.length) {
-        console.log("No donors or recipients found for matches");
         return [];
       }
 
@@ -59,7 +57,6 @@ export const adminService = {
       const availableDonors = donors.filter(donor => donor.isAvailable);
       
       if (!availableDonors.length) {
-        console.log("No available donors found");
         return [];
       }
 
@@ -85,7 +82,6 @@ export const adminService = {
       // Sort matches by compatibility score (higher is better)
       matches.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
       
-      console.log(`Generated ${matches.length} potential matches`, matches);
       return matches;
     } catch (error) {
       console.error("Error fetching matches:", error);
@@ -199,17 +195,18 @@ export const adminService = {
     }
   },
   
-  // Blood type compatibility helper
+  // Blood type compatibility helper based on medical standards
   isBloodCompatible(donorType: BloodType, recipientType: BloodType): boolean {
+    // Medical blood compatibility chart
     const compatibility: Record<BloodType, BloodType[]> = {
-      'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
+      'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
       'O+': ['O+', 'A+', 'B+', 'AB+'],
       'A-': ['A-', 'A+', 'AB-', 'AB+'],
       'A+': ['A+', 'AB+'],
       'B-': ['B-', 'B+', 'AB-', 'AB+'],
       'B+': ['B+', 'AB+'],
       'AB-': ['AB-', 'AB+'],
-      'AB+': ['AB+']
+      'AB+': ['AB+'] // Universal recipient
     };
     
     return compatibility[donorType].includes(recipientType);
@@ -218,6 +215,33 @@ export const adminService = {
   // Create a referral between donor and recipient
   async createReferral(donorId: string, recipientId: string, hospitalId: string) {
     try {
+      // First validate that all entities exist
+      const donor = await mockDbService.getDonorById(donorId);
+      const recipient = await mockDbService.getRecipientById(recipientId);
+      const hospital = await mockDbService.getHospitalById(hospitalId);
+      
+      if (!donor) {
+        toast.error("Donor not found or no longer available");
+        throw new Error("Donor not found");
+      }
+      
+      if (!recipient) {
+        toast.error("Recipient not found");
+        throw new Error("Recipient not found");
+      }
+      
+      if (!hospital) {
+        toast.error("Hospital not found");
+        throw new Error("Hospital not found");
+      }
+      
+      // Verify blood compatibility
+      if (!this.isBloodCompatible(donor.bloodType, recipient.bloodType)) {
+        toast.error("Blood types are not compatible");
+        throw new Error("Incompatible blood types");
+      }
+      
+      // Create the referral if everything is valid
       const referral = await mockDbService.createReferral({
         donorId,
         recipientId,
@@ -229,14 +253,38 @@ export const adminService = {
       return referral;
     } catch (error) {
       console.error("Error creating referral:", error);
-      toast.error("Failed to create referral");
+      toast.error(`Failed to create referral: ${(error as Error).message}`);
       throw error;
     }
   },
   
-  // Update referral status
+  // Update referral status with validation
   async updateReferralStatus(referralId: string, newStatus: string) {
     try {
+      // Get existing referrals
+      const referrals = await mockDbService.getReferrals();
+      const referral = referrals.find(r => r.id === referralId);
+      
+      if (!referral) {
+        toast.error("Referral not found");
+        return false;
+      }
+      
+      // If completing a referral, update the donor's last donation date
+      if (newStatus === 'completed') {
+        const donor = await mockDbService.getDonorById(referral.donorId);
+        if (donor) {
+          await mockDbService.updateDonorLastDonationDate(referral.donorId, new Date());
+          // Notify the donor and recipient about the completed donation
+          mockDbService.addNotification(donor.userId, `Your blood donation for recipient ${referral.recipientName} has been completed. Thank you for your life-saving contribution!`);
+          
+          const recipient = await mockDbService.getRecipientById(referral.recipientId);
+          if (recipient) {
+            mockDbService.addNotification(recipient.userId, `Your blood donation from ${donor.name} has been completed. We hope this helps in your recovery!`);
+          }
+        }
+      }
+      
       await mockDbService.updateReferralStatus(referralId, newStatus);
       toast.success(`Referral status updated to ${newStatus}`);
       return true;

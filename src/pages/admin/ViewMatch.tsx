@@ -5,18 +5,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { mockDbService } from '@/services/mockDbService';
+import { adminService } from '@/services/adminService';
 import { Donor, Recipient, Hospital } from '@/types';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
-import { Droplet, UserRound, Building2, Calendar, Activity } from 'lucide-react';
+import { Droplet, UserRound, Building2, Calendar, Activity, ArrowLeft, Check, X } from 'lucide-react';
 
 const ViewMatch: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [donor, setDonor] = useState<Donor | null>(null);
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [hospital, setHospital] = useState<Hospital | null>(null);
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>('');
   
   useEffect(() => {
     const fetchMatchData = async () => {
@@ -24,21 +28,23 @@ const ViewMatch: React.FC = () => {
       
       setLoading(true);
       try {
-        // In a real application, you would fetch the match data from an API
-        // For now, we'll use mock data
-        const mockDonor = await mockDbService.getDonorById(matchId);
-        setDonor(mockDonor || null);
+        // Parse the matchId to extract donor and recipient IDs
+        const [donorId, recipientId] = matchId.split('-').slice(1, 3);
         
-        if (mockDonor) {
-          const recipients = await mockDbService.getCompatibleRecipients(mockDonor.bloodType);
-          if (recipients.length > 0) {
-            setRecipient(recipients[0]);
-          }
-          
-          const hospitals = await mockDbService.getHospitals();
-          if (hospitals.length > 0) {
-            setHospital(hospitals[0]);
-          }
+        // Fetch donor and recipient data
+        const donorData = await mockDbService.getDonorById(donorId);
+        setDonor(donorData || null);
+        
+        const recipientData = await mockDbService.getRecipientById(recipientId);
+        setRecipient(recipientData || null);
+        
+        // Fetch all hospitals
+        const hospitalsData = await mockDbService.getHospitals();
+        setHospitals(hospitalsData);
+        
+        if (hospitalsData.length > 0) {
+          setSelectedHospitalId(hospitalsData[0].id);
+          setHospital(hospitalsData[0]);
         }
       } catch (error) {
         console.error('Error fetching match data:', error);
@@ -51,13 +57,37 @@ const ViewMatch: React.FC = () => {
     fetchMatchData();
   }, [matchId]);
   
-  const handleApproveMatch = () => {
-    toast.success('Match approved successfully');
-    navigate('/matches');
+  const handleHospitalChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const hospitalId = e.target.value;
+    setSelectedHospitalId(hospitalId);
+    
+    const selectedHospital = hospitals.find(h => h.id === hospitalId);
+    if (selectedHospital) {
+      setHospital(selectedHospital);
+    }
+  };
+  
+  const handleCreateReferral = async () => {
+    if (!donor || !recipient || !selectedHospitalId) {
+      toast.error('Missing required information');
+      return;
+    }
+    
+    setCreating(true);
+    try {
+      await adminService.createReferral(donor.id, recipient.id, selectedHospitalId);
+      toast.success('Referral created successfully');
+      navigate('/referrals');
+    } catch (error) {
+      console.error('Error creating referral:', error);
+      toast.error(`Failed to create referral: ${(error as Error).message}`);
+    } finally {
+      setCreating(false);
+    }
   };
   
   const handleRejectMatch = () => {
-    toast.error('Match rejected');
+    toast.info('Match rejected');
     navigate('/matches');
   };
   
@@ -71,7 +101,7 @@ const ViewMatch: React.FC = () => {
     );
   }
   
-  if (!donor || !recipient || !hospital) {
+  if (!donor || !recipient) {
     return (
       <Layout>
         <div className="container mx-auto py-8">
@@ -82,6 +112,7 @@ const ViewMatch: React.FC = () => {
               className="mt-4 bg-bloodlink-red hover:bg-bloodlink-red/80"
               onClick={() => navigate('/matches')}
             >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Return to Matches
             </Button>
           </div>
@@ -90,10 +121,20 @@ const ViewMatch: React.FC = () => {
     );
   }
   
+  // Check blood compatibility
+  const isCompatible = adminService.isBloodCompatible(donor.bloodType, recipient.bloodType);
+  
   return (
     <Layout>
       <div className="container mx-auto py-8">
         <div className="flex items-center mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/matches')}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <Droplet className="h-8 w-8 mr-2 text-bloodlink-red" />
           <h1 className="text-2xl font-bold">Match Details</h1>
         </div>
@@ -176,38 +217,61 @@ const ViewMatch: React.FC = () => {
             </CardContent>
           </Card>
           
-          {/* Hospital Information */}
+          {/* Hospital Selection */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-bloodlink-pink to-bloodlink-darkpink">
               <CardTitle className="flex items-center">
                 <Building2 className="h-5 w-5 mr-2 text-bloodlink-red" />
-                Hospital Information
+                Hospital Selection
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div>
-                  <Label className="text-sm text-gray-500">Name</Label>
-                  <p className="font-medium">{hospital.name}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-gray-500">Location</Label>
-                  <p className="font-medium">{hospital.location}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-gray-500">Contact</Label>
-                  <p className="font-medium">{hospital.phone}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-gray-500">Available Blood Types</Label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {hospital.availableBloodTypes.map((type) => (
-                      <span key={type} className="px-2 py-1 bg-bloodlink-pink text-bloodlink-red rounded-md text-xs font-medium">
-                        {type}
-                      </span>
+                  <Label htmlFor="hospital" className="text-sm text-gray-500">Select Hospital</Label>
+                  <select 
+                    id="hospital"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1"
+                    value={selectedHospitalId}
+                    onChange={handleHospitalChange}
+                  >
+                    {hospitals.map(h => (
+                      <option key={h.id} value={h.id}>
+                        {h.name} - {h.location}
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
+                
+                {hospital && (
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-sm text-gray-500">Location</Label>
+                      <p className="font-medium">{hospital.location}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Contact</Label>
+                      <p className="font-medium">{hospital.phone}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Available Blood Types</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {hospital.availableBloodTypes.map((type) => (
+                          <span 
+                            key={type} 
+                            className={`px-2 py-1 rounded-md text-xs font-medium ${
+                              type === donor.bloodType ? 
+                              'bg-green-100 text-green-700' : 
+                              'bg-bloodlink-pink text-bloodlink-red'
+                            }`}
+                          >
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -222,8 +286,32 @@ const ViewMatch: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <Label className="text-sm text-gray-500">Compatibility</Label>
-                <p className="font-medium text-green-500">Compatible</p>
+                <Label className="text-sm text-gray-500">Blood Compatibility</Label>
+                {isCompatible ? (
+                  <p className="font-medium text-green-500 flex items-center">
+                    <Check className="h-4 w-4 mr-2" />
+                    Compatible - {donor.bloodType} can donate to {recipient.bloodType}
+                  </p>
+                ) : (
+                  <p className="font-medium text-red-500 flex items-center">
+                    <X className="h-4 w-4 mr-2" />
+                    Incompatible - {donor.bloodType} cannot donate to {recipient.bloodType}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label className="text-sm text-gray-500">Compatibility Score</Label>
+                <div className="mt-1">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-bloodlink-red h-2.5 rounded-full" 
+                      style={{ width: `${adminService.calculateCompatibilityScore(donor, recipient)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm mt-1 text-gray-600">
+                    {adminService.calculateCompatibilityScore(donor, recipient)}% match
+                  </p>
+                </div>
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Recommended Date</Label>
@@ -231,16 +319,35 @@ const ViewMatch: React.FC = () => {
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Notes</Label>
-                <p className="text-gray-700">This match was automatically generated based on blood type compatibility and recipient urgency.</p>
+                <p className="text-gray-700">
+                  {recipient.urgency === 'critical' ? 
+                    'Critical urgency - immediate attention required!' : 
+                    'This match was automatically generated based on blood type compatibility and recipient urgency.'}
+                </p>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleRejectMatch}>
+            <Button variant="outline" onClick={handleRejectMatch} disabled={creating}>
+              <X className="h-4 w-4 mr-2" />
               Reject Match
             </Button>
-            <Button className="bg-bloodlink-red hover:bg-bloodlink-red/80" onClick={handleApproveMatch}>
-              Approve Match
+            <Button 
+              className="bg-bloodlink-red hover:bg-bloodlink-red/80" 
+              onClick={handleCreateReferral} 
+              disabled={!isCompatible || creating}
+            >
+              {creating ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Create Referral
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>
