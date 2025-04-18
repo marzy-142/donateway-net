@@ -1,4 +1,3 @@
-
 import { Donor, Hospital, Recipient, User, BloodType, Referral } from "@/types";
 
 export const mockDbService = {
@@ -8,67 +7,7 @@ export const mockDbService = {
       if (storedDonors) {
         return JSON.parse(storedDonors);
       }
-
-      const mockDonors: Donor[] = [
-        {
-          id: 'donor-1',
-          userId: 'user-1',
-          name: 'Alice Smith',
-          age: 28,
-          bloodType: 'A+',
-          phone: '123-456-7890',
-          email: 'alice.smith@example.com',
-          address: '123 Main St',
-          isAvailable: true,
-        },
-        {
-          id: 'donor-2',
-          userId: 'user-2',
-          name: 'Bob Johnson',
-          age: 34,
-          bloodType: 'B-',
-          phone: '987-654-3210',
-          email: 'bob.johnson@example.com',
-          address: '456 Elm St',
-          isAvailable: false,
-        },
-        {
-          id: 'donor-3',
-          userId: 'user-3',
-          name: 'Charlie Brown',
-          age: 22,
-          bloodType: 'O+',
-          phone: '555-123-4567',
-          email: 'charlie.brown@example.com',
-          address: '789 Oak St',
-          isAvailable: true,
-        },
-        {
-          id: 'donor-4',
-          userId: 'user-4',
-          name: 'Diana Miller',
-          age: 41,
-          bloodType: 'AB+',
-          phone: '111-222-3333',
-          email: 'diana.miller@example.com',
-          address: '101 Pine St',
-          isAvailable: false,
-        },
-        {
-          id: 'donor-5',
-          userId: 'user-5',
-          name: 'Ethan Davis',
-          age: 29,
-          bloodType: 'A-',
-          phone: '444-555-6666',
-          email: 'ethan.davis@example.com',
-          address: '222 Cedar St',
-          isAvailable: true,
-        },
-      ];
-
-      localStorage.setItem('bloodlink_donors', JSON.stringify(mockDonors));
-      return mockDonors;
+      return [];
     } catch (error) {
       console.error("Error fetching donors:", error);
       return [];
@@ -110,63 +49,7 @@ export const mockDbService = {
       if (storedRecipients) {
         return JSON.parse(storedRecipients);
       }
-
-      // Only create mock recipients if none exist
-      const mockRecipients: Recipient[] = [
-        {
-          id: 'recipient-1',
-          userId: 'user-6',
-          name: 'Sophia White',
-          bloodType: 'B+',
-          phone: '222-333-4444',
-          preferredHospital: 'City General Hospital',
-          urgency: 'urgent',
-          medicalCondition: 'Anemia',
-        },
-        {
-          id: 'recipient-2',
-          userId: 'user-7',
-          name: 'Liam Green',
-          bloodType: 'O-',
-          phone: '333-444-5555',
-          preferredHospital: 'County Medical Center',
-          urgency: 'critical',
-          medicalCondition: 'Surgery required',
-        },
-        {
-          id: 'recipient-3',
-          userId: 'user-8',
-          name: 'Olivia Taylor',
-          bloodType: 'AB-',
-          phone: '444-555-7777',
-          preferredHospital: 'State University Hospital',
-          urgency: 'normal',
-          medicalCondition: 'Routine checkup',
-        },
-        {
-          id: 'recipient-4',
-          userId: 'user-9',
-          name: 'Noah Anderson',
-          bloodType: 'A+',
-          phone: '555-666-8888',
-          preferredHospital: 'Community Hospital',
-          urgency: 'urgent',
-          medicalCondition: 'Accident victim',
-        },
-        {
-          id: 'recipient-5',
-          userId: 'user-10',
-          name: 'Isabella Thomas',
-          bloodType: 'B-',
-          phone: '666-777-9999',
-          preferredHospital: 'Regional Trauma Center',
-          urgency: 'critical',
-          medicalCondition: 'Emergency transfusion',
-        },
-      ];
-
-      localStorage.setItem('bloodlink_recipients', JSON.stringify(mockRecipients));
-      return mockRecipients;
+      return [];
     } catch (error) {
       console.error("Error fetching recipients:", error);
       return [];
@@ -222,32 +105,18 @@ export const mockDbService = {
         return JSON.parse(storedHospitals);
       }
 
-      const mockHospitals: Hospital[] = [
+      const defaultHospitals: Hospital[] = [
         {
           id: 'hospital-1',
           name: 'City General Hospital',
           location: 'Downtown',
           phone: '777-888-9999',
           availableBloodTypes: ['A+', 'B+', 'O-', 'AB+'],
-        },
-        {
-          id: 'hospital-2',
-          name: 'County Medical Center',
-          location: 'Suburb',
-          phone: '888-999-0000',
-          availableBloodTypes: ['A-', 'B-', 'O+', 'AB-'],
-        },
-        {
-          id: 'hospital-3',
-          name: 'State University Hospital',
-          location: 'University Area',
-          phone: '999-000-1111',
-          availableBloodTypes: ['A+', 'B-', 'O-', 'AB+'],
-        },
+        }
       ];
 
-      localStorage.setItem('bloodlink_hospitals', JSON.stringify(mockHospitals));
-      return mockHospitals;
+      localStorage.setItem('bloodlink_hospitals', JSON.stringify(defaultHospitals));
+      return defaultHospitals;
     } catch (error) {
       console.error("Error fetching hospitals:", error);
       return [];
@@ -256,50 +125,13 @@ export const mockDbService = {
 
   getReferrals: async () => {
     try {
-      // Try to get existing referrals from localStorage
       const storedReferrals = localStorage.getItem('bloodlink_referrals');
       
       if (storedReferrals) {
         return JSON.parse(storedReferrals);
       }
       
-      // If no referrals exist, create some mock referrals
-      const donors = await mockDbService.getDonors();
-      const recipients = await mockDbService.getRecipients();
-      const hospitals = await mockDbService.getHospitals();
-      
-      if (donors.length === 0 || recipients.length === 0) {
-        return [];
-      }
-      
-      // Generate some mock referrals
-      const mockReferrals = [];
-      
-      for (let i = 0; i < Math.min(donors.length, recipients.length); i++) {
-        const donor = donors[i];
-        const recipient = recipients[i];
-        const hospital = hospitals[Math.floor(Math.random() * hospitals.length)];
-        
-        // Only create referrals if blood types are compatible
-        if (adminService.isBloodCompatible(donor.bloodType, recipient.bloodType)) {
-          mockReferrals.push({
-            id: `ref-${donor.id}-${recipient.id}`,
-            donorId: donor.id,
-            donorName: donor.name,
-            recipientId: recipient.id,
-            recipientName: recipient.name,
-            hospitalId: hospital.id,
-            hospitalName: hospital.name,
-            status: Math.random() > 0.5 ? 'approved' : 'pending',
-            createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
-          });
-        }
-      }
-      
-      // Store the mock referrals
-      localStorage.setItem('bloodlink_referrals', JSON.stringify(mockReferrals));
-      
-      return mockReferrals;
+      return [];
     } catch (error) {
       console.error("Error getting referrals:", error);
       return [];
@@ -393,10 +225,8 @@ export const mockDbService = {
     }
   },
   
-  // Notification system
   addNotification: (userId: string, message: string) => {
     try {
-      // Get existing notifications
       let notifications = [];
       const storedNotifications = localStorage.getItem(`bloodlink_notifications_${userId}`);
       
@@ -404,7 +234,6 @@ export const mockDbService = {
         notifications = JSON.parse(storedNotifications);
       }
       
-      // Add new notification
       notifications.push({
         id: `notification-${Date.now()}`,
         message,
@@ -412,9 +241,7 @@ export const mockDbService = {
         createdAt: new Date()
       });
       
-      // Save to localStorage
       localStorage.setItem(`bloodlink_notifications_${userId}`, JSON.stringify(notifications));
-      
       return true;
     } catch (error) {
       console.error("Error adding notification:", error);

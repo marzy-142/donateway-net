@@ -1,37 +1,31 @@
 
 import { toast } from "sonner";
 import { mockDbService } from "./mockDbService";
-import { Donor, Hospital, Recipient, User, BloodType, UserRole } from "@/types";
+import { Donor, Hospital, Recipient, User, BloodType } from "@/types";
 
 export const adminService = {
-  // User management
   async getAllUsers(): Promise<User[]> {
     try {
-      // Collect users from localStorage
       const users: User[] = [];
       
-      // Iterate through all localStorage keys
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         
-        // Check for user-related keys
         if (key?.startsWith('bloodlink_user_')) {
           try {
             const userId = key.replace('bloodlink_user_', '');
             const userData = JSON.parse(localStorage.getItem(key) || '{}');
             
-            // Ensure all required fields are present
             const user: User = {
               id: userId,
-              email: userData.email || `user${userId.substring(0, 4)}@example.com`,
-              name: userData.name || `User ${userId.substring(0, 4)}`,
-              role: userData.role || 'donor', // Default to donor if no role
-              createdAt: new Date(userData.createdAt || Date.now()),
-              hasCompletedProfile: userData.hasCompletedProfile || false,
-              avatar: userData.avatar // Optional avatar
+              email: userData.email,
+              name: userData.name,
+              role: userData.role,
+              createdAt: new Date(userData.createdAt),
+              hasCompletedProfile: userData.hasCompletedProfile,
+              avatar: userData.avatar
             };
             
-            // Add the user to the list
             users.push(user);
           } catch (error) {
             console.error("Error parsing user data:", error);
@@ -39,9 +33,7 @@ export const adminService = {
         }
       }
       
-      // Log the retrieved users for debugging
       console.log('Retrieved Users:', users);
-      
       return users;
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -50,7 +42,6 @@ export const adminService = {
     }
   },
   
-  // Match management
   async getAllMatches() {
     try {
       const donors = await mockDbService.getDonors();
@@ -61,11 +52,10 @@ export const adminService = {
         return [];
       }
 
-      // Generate matches based on blood type compatibility
       const matches = [];
       
       for (const donor of donors) {
-        if (!donor.isAvailable) continue; // Skip unavailable donors
+        if (!donor.isAvailable) continue;
         
         const compatibleRecipients = recipients.filter(recipient => 
           this.isBloodCompatible(donor.bloodType, recipient.bloodType)
@@ -76,8 +66,8 @@ export const adminService = {
             id: `match-${donor.id}-${recipient.id}`,
             donor: donor,
             recipient: recipient,
-            status: Math.random() > 0.5 ? 'approved' : 'pending',
-            matchDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
+            status: 'pending',
+            matchDate: new Date()
           });
         }
       }
@@ -91,7 +81,6 @@ export const adminService = {
     }
   },
   
-  // Hospital management
   async getAllHospitals(): Promise<Hospital[]> {
     try {
       return await mockDbService.getHospitals();
@@ -102,20 +91,20 @@ export const adminService = {
     }
   },
   
-  // Analytics data
   async getAnalyticsData() {
     try {
       const donors = await mockDbService.getDonors();
       const recipients = await mockDbService.getRecipients();
       const hospitals = await mockDbService.getHospitals();
+      const referrals = await mockDbService.getReferrals();
       
-      // Calculate statistics
+      // Calculate real statistics
       const activeDonors = donors.filter(donor => donor.isAvailable).length;
       const activeRecipients = recipients.length;
-      const completedDonations = Math.floor(Math.random() * 200) + 50; // Mock data
-      const pendingMatches = Math.floor(Math.random() * 30) + 5; // Mock data
+      const completedDonations = referrals.filter(ref => ref.status === 'completed').length;
+      const pendingMatches = referrals.filter(ref => ref.status === 'pending').length;
       
-      // Blood type distribution
+      // Blood type distribution from real donors
       const bloodTypeDistribution: Record<BloodType, number> = {
         'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'AB+': 0, 'AB-': 0, 'O+': 0, 'O-': 0
       };
@@ -123,6 +112,21 @@ export const adminService = {
       donors.forEach(donor => {
         bloodTypeDistribution[donor.bloodType]++;
       });
+      
+      // Get real monthly donations from referrals
+      const monthlyDonations = Array.from({ length: 6 }, (_, i) => {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const month = date.toLocaleString('default', { month: 'short' });
+        const donations = referrals.filter(ref => {
+          const refDate = new Date(ref.createdAt);
+          return refDate.getMonth() === date.getMonth() && 
+                 refDate.getFullYear() === date.getFullYear() &&
+                 ref.status === 'completed';
+        }).length;
+        
+        return { month, donations };
+      }).reverse();
       
       return {
         stats: {
@@ -133,15 +137,7 @@ export const adminService = {
           totalHospitals: hospitals.length,
         },
         bloodTypeDistribution,
-        // Monthly donation trend (mock data)
-        monthlyDonations: [
-          { month: 'Jan', donations: 45 },
-          { month: 'Feb', donations: 52 },
-          { month: 'Mar', donations: 49 },
-          { month: 'Apr', donations: 63 },
-          { month: 'May', donations: 55 },
-          { month: 'Jun', donations: 71 }
-        ]
+        monthlyDonations
       };
     } catch (error) {
       console.error("Error fetching analytics data:", error);
@@ -160,60 +156,7 @@ export const adminService = {
     }
   },
   
-  // Events management
-  async getUpcomingEvents() {
-    // Mock data for events
-    return [
-      {
-        id: '1',
-        title: 'Blood Donation Drive',
-        location: 'Central Hospital',
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        participants: 15
-      },
-      {
-        id: '2',
-        title: 'Community Awareness Program',
-        location: 'City Hall',
-        date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-        participants: 30
-      },
-      {
-        id: '3',
-        title: 'Hospital Staff Training',
-        location: 'Medical Center',
-        date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-        participants: 8
-      }
-    ];
-  },
-  
-  // System alerts
-  async getSystemAlerts() {
-    // Mock data for system alerts
-    return [
-      {
-        id: '1',
-        type: 'critical',
-        message: 'Critical shortage of O- blood type',
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
-      },
-      {
-        id: '2',
-        type: 'warning',
-        message: 'AB+ supplies running low',
-        date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1 day ago
-      },
-      {
-        id: '3',
-        type: 'info',
-        message: 'System maintenance scheduled for next weekend',
-        date: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
-      }
-    ];
-  },
-  
-  // Helper function for blood type compatibility
+  // Blood type compatibility helper
   isBloodCompatible(donorType: BloodType, recipientType: BloodType): boolean {
     const compatibility: Record<BloodType, BloodType[]> = {
       'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
