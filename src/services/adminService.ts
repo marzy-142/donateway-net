@@ -16,17 +16,20 @@ export const adminService = {
             const userId = key.replace('bloodlink_user_', '');
             const userData = JSON.parse(localStorage.getItem(key) || '{}');
             
-            const user: User = {
-              id: userId,
-              email: userData.email,
-              name: userData.name,
-              role: userData.role,
-              createdAt: new Date(userData.createdAt),
-              hasCompletedProfile: userData.hasCompletedProfile,
-              avatar: userData.avatar
-            };
-            
-            users.push(user);
+            // Only add valid users with required fields
+            if (userData && userData.email && userData.name) {
+              const user: User = {
+                id: userId,
+                email: userData.email,
+                name: userData.name,
+                role: userData.role,
+                createdAt: new Date(userData.createdAt || Date.now()),
+                hasCompletedProfile: userData.hasCompletedProfile || false,
+                avatar: userData.avatar
+              };
+              
+              users.push(user);
+            }
           } catch (error) {
             console.error("Error parsing user data:", error);
           }
@@ -52,11 +55,17 @@ export const adminService = {
         return [];
       }
 
+      // Get only available donors
+      const availableDonors = donors.filter(donor => donor.isAvailable);
+      
+      if (!availableDonors.length) {
+        console.log("No available donors found");
+        return [];
+      }
+
       const matches = [];
       
-      for (const donor of donors) {
-        if (!donor.isAvailable) continue;
-        
+      for (const donor of availableDonors) {
         const compatibleRecipients = recipients.filter(recipient => 
           this.isBloodCompatible(donor.bloodType, recipient.bloodType)
         );
@@ -67,10 +76,14 @@ export const adminService = {
             donor: donor,
             recipient: recipient,
             status: 'pending',
-            matchDate: new Date()
+            matchDate: new Date(),
+            compatibilityScore: this.calculateCompatibilityScore(donor, recipient)
           });
         }
       }
+      
+      // Sort matches by compatibility score (higher is better)
+      matches.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
       
       console.log(`Generated ${matches.length} potential matches`, matches);
       return matches;
@@ -79,6 +92,36 @@ export const adminService = {
       toast.error("Failed to load match data");
       return [];
     }
+  },
+  
+  calculateCompatibilityScore(donor: Donor, recipient: Recipient): number {
+    // Basic score starts at 70
+    let score = 70;
+    
+    // Exact blood type match gets a bonus
+    if (donor.bloodType === recipient.bloodType) {
+      score += 15;
+    }
+    
+    // Urgency affects the score
+    if (recipient.urgency === 'critical') {
+      score += 25;
+    } else if (recipient.urgency === 'urgent') {
+      score += 15;
+    }
+    
+    // Recent donors get a small penalty (if they donated in the last 3 months)
+    if (donor.lastDonationDate) {
+      const lastDonation = new Date(donor.lastDonationDate);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      
+      if (lastDonation > threeMonthsAgo) {
+        score -= 10;
+      }
+    }
+    
+    return Math.max(0, Math.min(score, 100)); // Keep score between 0 and 100
   },
   
   async getAllHospitals(): Promise<Hospital[]> {
@@ -170,6 +213,38 @@ export const adminService = {
     };
     
     return compatibility[donorType].includes(recipientType);
+  },
+  
+  // Create a referral between donor and recipient
+  async createReferral(donorId: string, recipientId: string, hospitalId: string) {
+    try {
+      const referral = await mockDbService.createReferral({
+        donorId,
+        recipientId,
+        hospitalId,
+        status: 'pending'
+      });
+      
+      toast.success("Referral created successfully!");
+      return referral;
+    } catch (error) {
+      console.error("Error creating referral:", error);
+      toast.error("Failed to create referral");
+      throw error;
+    }
+  },
+  
+  // Update referral status
+  async updateReferralStatus(referralId: string, newStatus: string) {
+    try {
+      await mockDbService.updateReferralStatus(referralId, newStatus);
+      toast.success(`Referral status updated to ${newStatus}`);
+      return true;
+    } catch (error) {
+      console.error("Error updating referral status:", error);
+      toast.error("Failed to update referral status");
+      return false;
+    }
   }
 };
 

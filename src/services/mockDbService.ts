@@ -1,11 +1,25 @@
-import { Donor, Hospital, Recipient, User, BloodType, Referral } from "@/types";
+
+import { Donor, Hospital, Recipient, User, BloodType, Referral, Notification } from "@/types";
+import { toast } from "sonner";
+import { auth } from "@/lib/firebase";
 
 export const mockDbService = {
   getDonors: async (): Promise<Donor[]> => {
     try {
       const storedDonors = localStorage.getItem('bloodlink_donors');
       if (storedDonors) {
-        return JSON.parse(storedDonors);
+        // Filter out donors that don't correspond to registered users
+        const donors = JSON.parse(storedDonors);
+        const registeredDonors = [];
+        
+        for (const donor of donors) {
+          const userKey = `bloodlink_user_${donor.userId}`;
+          if (localStorage.getItem(userKey)) {
+            registeredDonors.push(donor);
+          }
+        }
+        
+        return registeredDonors;
       }
       return [];
     } catch (error) {
@@ -47,7 +61,18 @@ export const mockDbService = {
     try {
       const storedRecipients = localStorage.getItem('bloodlink_recipients');
       if (storedRecipients) {
-        return JSON.parse(storedRecipients);
+        // Filter out recipients that don't correspond to registered users
+        const recipients = JSON.parse(storedRecipients);
+        const registeredRecipients = [];
+        
+        for (const recipient of recipients) {
+          const userKey = `bloodlink_user_${recipient.userId}`;
+          if (localStorage.getItem(userKey)) {
+            registeredRecipients.push(recipient);
+          }
+        }
+        
+        return registeredRecipients;
       }
       return [];
     } catch (error) {
@@ -178,9 +203,12 @@ export const mockDbService = {
       mockDbService.addNotification(donor.userId, `New blood donation referral created with recipient ${recipient.name}`);
       mockDbService.addNotification(recipient.userId, `New blood donation referral created with donor ${donor.name}`);
       
+      toast.success("Referral created successfully!");
+      
       return newReferral;
     } catch (error) {
       console.error("Error creating referral:", error);
+      toast.error("Failed to create referral: " + (error as Error).message);
       throw error;
     }
   },

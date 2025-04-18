@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { mockDbService } from '@/services/mockDbService';
+import { adminService } from '@/services/adminService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Referral, Donor, Recipient, Hospital } from '@/types';
-import { Search, Filter, Trash2 } from 'lucide-react';
+import { Search, Filter, Trash2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Referrals: React.FC = () => {
@@ -18,6 +19,7 @@ const Referrals: React.FC = () => {
   const [hospitals, setHospitals] = useState<Record<string, Hospital>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,9 +63,9 @@ const Referrals: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleDelete = async (referralId: string) => {
+  const handleCancel = async (referralId: string) => {
     try {
-      await mockDbService.updateReferralStatus(referralId, 'cancelled');
+      await adminService.updateReferralStatus(referralId, 'cancelled');
       
       setReferrals(prevReferrals => 
         prevReferrals.map(ref => 
@@ -77,18 +79,41 @@ const Referrals: React.FC = () => {
       toast.error('Failed to cancel referral');
     }
   };
+  
+  const handleComplete = async (referralId: string) => {
+    try {
+      await adminService.updateReferralStatus(referralId, 'completed');
+      
+      setReferrals(prevReferrals => 
+        prevReferrals.map(ref => 
+          ref.id === referralId ? { ...ref, status: 'completed' } : ref
+        )
+      );
+      
+      toast.success('Referral marked as completed');
+    } catch (error) {
+      console.error('Error completing referral:', error);
+      toast.error('Failed to complete referral');
+    }
+  };
 
   const filteredReferrals = referrals.filter(referral => {
-    const donorName = donors[referral.donorId]?.name.toLowerCase() || '';
-    const recipientName = recipients[referral.recipientId]?.name.toLowerCase() || '';
-    const hospitalName = hospitals[referral.hospitalId]?.name.toLowerCase() || '';
+    const donorName = donors[referral.donorId]?.name.toLowerCase() || referral.donorName?.toLowerCase() || '';
+    const recipientName = recipients[referral.recipientId]?.name.toLowerCase() || referral.recipientName?.toLowerCase() || '';
+    const hospitalName = hospitals[referral.hospitalId]?.name.toLowerCase() || referral.hospitalName?.toLowerCase() || '';
     const searchLower = searchTerm.toLowerCase();
     
-    return (
+    const matchesSearch = 
       donorName.includes(searchLower) ||
       recipientName.includes(searchLower) ||
-      hospitalName.includes(searchLower)
-    );
+      hospitalName.includes(searchLower);
+      
+    // Apply status filter if one is selected
+    if (filterStatus) {
+      return matchesSearch && referral.status === filterStatus;
+    }
+    
+    return matchesSearch;
   });
 
   const formatDate = (date: Date) => {
@@ -97,8 +122,7 @@ const Referrals: React.FC = () => {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+      minute: '2-digit'
     });
   };
 
@@ -115,14 +139,6 @@ const Referrals: React.FC = () => {
                 Comprehensive overview of medical referrals, tracking patient journeys with precision and care.
               </p>
             </div>
-            
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="bg-transparent border border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10 rounded-full"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
           </div>
           
           <Card className="mb-6">
@@ -138,10 +154,36 @@ const Referrals: React.FC = () => {
                   />
                 </div>
                 
-                <Button variant="outline" className="sm:w-auto w-full">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    className={`${!filterStatus ? 'bg-bloodlink-red/10 border-bloodlink-red text-bloodlink-red' : ''}`}
+                    onClick={() => setFilterStatus(null)}
+                  >
+                    All
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className={`${filterStatus === 'pending' ? 'bg-yellow-100 border-yellow-400 text-yellow-700' : ''}`}
+                    onClick={() => setFilterStatus('pending')}
+                  >
+                    Pending
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className={`${filterStatus === 'completed' ? 'bg-green-100 border-green-400 text-green-700' : ''}`}
+                    onClick={() => setFilterStatus('completed')}
+                  >
+                    Completed
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className={`${filterStatus === 'cancelled' ? 'bg-red-100 border-red-400 text-red-700' : ''}`}
+                    onClick={() => setFilterStatus('cancelled')}
+                  >
+                    Cancelled
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -158,8 +200,16 @@ const Referrals: React.FC = () => {
                   const recipient = recipients[referral.recipientId];
                   const hospital = hospitals[referral.hospitalId];
                   
+                  const donorName = donor?.name || referral.donorName || 'Unknown Donor';
+                  const recipientName = recipient?.name || referral.recipientName || 'Unknown Recipient';
+                  const hospitalName = hospital?.name || referral.hospitalName || 'Unknown Hospital';
+                  
                   return (
-                    <Card key={referral.id} className="overflow-hidden border-l-4 border-l-bloodlink-red">
+                    <Card key={referral.id} className={`overflow-hidden border-l-4 ${
+                      referral.status === 'pending' ? 'border-l-yellow-500' :
+                      referral.status === 'completed' ? 'border-l-green-500' :
+                      'border-l-red-500'
+                    }`}>
                       <CardContent className="p-4">
                         <div className="flex flex-col md:flex-row justify-between gap-4">
                           <div className="space-y-2">
@@ -167,21 +217,21 @@ const Referrals: React.FC = () => {
                             
                             <div>
                               <span className="text-bloodlink-red font-semibold">Donor:</span>{' '}
-                              {donor?.name || 'Unknown Donor'}
+                              {donorName}
                             </div>
                             
                             <div>
                               <span className="text-bloodlink-red font-semibold">Recipient:</span>{' '}
-                              {recipient?.name || 'Unknown Recipient'}
+                              {recipientName}
                             </div>
                             
                             <div>
                               <span className="text-bloodlink-red font-semibold">Hospital:</span>{' '}
-                              {hospital?.name || 'Unknown Hospital'}
+                              {hospitalName}
                             </div>
                             
                             <div className="text-gray-500 text-sm">
-                              {formatDate(referral.createdAt)}
+                              Created: {formatDate(new Date(referral.createdAt))}
                             </div>
                           </div>
                           
@@ -196,17 +246,30 @@ const Referrals: React.FC = () => {
                               {referral.status.charAt(0).toUpperCase() + referral.status.slice(1)}
                             </div>
                             
-                            {referral.status === 'pending' && (
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                className="mt-2"
-                                onClick={() => handleDelete(referral.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Cancel
-                              </Button>
-                            )}
+                            <div className="flex gap-2 mt-2">
+                              {referral.status === 'pending' && (
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="border-green-500 text-green-700 hover:bg-green-50"
+                                    onClick={() => handleComplete(referral.id)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Complete
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleCancel(referral.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Cancel
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
