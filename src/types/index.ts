@@ -52,4 +52,14 @@ export interface Referral {
   hospitalId: string;
   status: 'pending' | 'completed' | 'cancelled';
   createdAt: Date;
+  donorName?: string;
+  recipientName?: string;
+  hospitalName?: string;
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
 }

@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { mockDbService } from '@/services/mockDbService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Donor, Recipient, Hospital } from '@/types';
-import { Search, Heart, Eye, UserCheck, Filter, Clipboard } from 'lucide-react';
+import { Search, Heart, Eye, UserCheck, Filter, Clipboard, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 
@@ -27,6 +25,7 @@ const Matches: React.FC = () => {
   const [selectedHospital, setSelectedHospital] = useState('');
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -79,6 +78,7 @@ const Matches: React.FC = () => {
       return;
     }
     
+    setSubmitting(true);
     try {
       await mockDbService.createReferral({
         donorId: selectedDonor.id,
@@ -88,19 +88,26 @@ const Matches: React.FC = () => {
       });
       
       toast.success('Referral created successfully');
+      toast.success('Notifications sent to donor and recipient');
+      
+      setSelectedDonor(null);
+      setSelectedRecipient(null);
+      setSelectedHospital('');
+      setCompatibleRecipients([]);
+      
       navigate('/referrals');
     } catch (error) {
       console.error('Error creating referral:', error);
       toast.error('Failed to create referral');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const filteredDonors = donors.filter(donor => {
-    // First apply text search
     const matchesSearch = donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       donor.bloodType.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Then apply blood type filter
     if (filterBy === 'all') return matchesSearch;
     return matchesSearch && donor.bloodType === filterBy;
   });
@@ -125,7 +132,6 @@ const Matches: React.FC = () => {
         </div>
         
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Donors Column */}
           <div className="md:w-1/2 space-y-4">
             <Card>
               <CardContent className="p-4">
@@ -226,7 +232,6 @@ const Matches: React.FC = () => {
             </div>
           </div>
           
-          {/* Recipients Column */}
           <div className="md:w-1/2 space-y-4">
             <h2 className="text-xl font-bold text-red-800">Recipient Matches</h2>
             
@@ -331,10 +336,21 @@ const Matches: React.FC = () => {
                     </div>
                     
                     <Button 
-                      className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
+                      className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80 flex items-center justify-center gap-2"
                       onClick={handleReferralSubmit}
+                      disabled={submitting}
                     >
-                      Create Referral
+                      {submitting ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="h-4 w-4" />
+                          Create Referral & Notify
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardContent>

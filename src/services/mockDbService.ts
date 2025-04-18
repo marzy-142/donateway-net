@@ -1,5 +1,5 @@
 
-import { Donor, Hospital, Recipient, User, BloodType } from "@/types";
+import { Donor, Hospital, Recipient, User, BloodType, Referral } from "@/types";
 
 export const mockDbService = {
   getDonors: async (): Promise<Donor[]> => {
@@ -305,6 +305,167 @@ export const mockDbService = {
       return [];
     }
   },
+  
+  createReferral: async (referral: {donorId: string, recipientId: string, hospitalId: string, status: string}) => {
+    try {
+      // Get existing referrals
+      let referrals = [];
+      const storedReferrals = localStorage.getItem('bloodlink_referrals');
+      
+      if (storedReferrals) {
+        referrals = JSON.parse(storedReferrals);
+      }
+      
+      // Get donor and recipient information
+      const donor = await mockDbService.getDonorById(referral.donorId);
+      const recipient = await mockDbService.getRecipientById(referral.recipientId);
+      const hospital = await mockDbService.getHospitalById(referral.hospitalId);
+      
+      if (!donor || !recipient || !hospital) {
+        throw new Error("Missing donor, recipient, or hospital information");
+      }
+      
+      // Create new referral
+      const newReferral = {
+        id: `ref-${referral.donorId}-${referral.recipientId}-${Date.now()}`,
+        donorId: referral.donorId,
+        donorName: donor.name,
+        recipientId: referral.recipientId,
+        recipientName: recipient.name,
+        hospitalId: referral.hospitalId,
+        hospitalName: hospital.name,
+        status: referral.status,
+        createdAt: new Date()
+      };
+      
+      // Add to referrals and save to localStorage
+      referrals.push(newReferral);
+      localStorage.setItem('bloodlink_referrals', JSON.stringify(referrals));
+      
+      // Add notifications for donor and recipient
+      mockDbService.addNotification(donor.userId, `New blood donation referral created with recipient ${recipient.name}`);
+      mockDbService.addNotification(recipient.userId, `New blood donation referral created with donor ${donor.name}`);
+      
+      return newReferral;
+    } catch (error) {
+      console.error("Error creating referral:", error);
+      throw error;
+    }
+  },
+  
+  updateReferralStatus: async (referralId: string, newStatus: string) => {
+    try {
+      // Get existing referrals
+      const storedReferrals = localStorage.getItem('bloodlink_referrals');
+      
+      if (!storedReferrals) {
+        throw new Error("No referrals found");
+      }
+      
+      let referrals = JSON.parse(storedReferrals);
+      
+      // Find and update the referral
+      const updatedReferrals = referrals.map(ref => {
+        if (ref.id === referralId) {
+          return { ...ref, status: newStatus };
+        }
+        return ref;
+      });
+      
+      // Save updated referrals
+      localStorage.setItem('bloodlink_referrals', JSON.stringify(updatedReferrals));
+      
+      return true;
+    } catch (error) {
+      console.error("Error updating referral status:", error);
+      throw error;
+    }
+  },
+  
+  getHospitalById: async (hospitalId: string): Promise<Hospital | null> => {
+    try {
+      const hospitals = await mockDbService.getHospitals();
+      const hospital = hospitals.find(h => h.id === hospitalId);
+      return hospital || null;
+    } catch (error) {
+      console.error("Error fetching hospital by ID:", error);
+      return null;
+    }
+  },
+  
+  // Notification system
+  addNotification: (userId: string, message: string) => {
+    try {
+      // Get existing notifications
+      let notifications = [];
+      const storedNotifications = localStorage.getItem(`bloodlink_notifications_${userId}`);
+      
+      if (storedNotifications) {
+        notifications = JSON.parse(storedNotifications);
+      }
+      
+      // Add new notification
+      notifications.push({
+        id: `notification-${Date.now()}`,
+        message,
+        read: false,
+        createdAt: new Date()
+      });
+      
+      // Save to localStorage
+      localStorage.setItem(`bloodlink_notifications_${userId}`, JSON.stringify(notifications));
+      
+      return true;
+    } catch (error) {
+      console.error("Error adding notification:", error);
+      return false;
+    }
+  },
+  
+  getNotifications: async (userId: string) => {
+    try {
+      const storedNotifications = localStorage.getItem(`bloodlink_notifications_${userId}`);
+      
+      if (storedNotifications) {
+        return JSON.parse(storedNotifications);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Error getting notifications:", error);
+      return [];
+    }
+  },
+  
+  markNotificationAsRead: async (userId: string, notificationId: string) => {
+    try {
+      const storedNotifications = localStorage.getItem(`bloodlink_notifications_${userId}`);
+      
+      if (!storedNotifications) {
+        return false;
+      }
+      
+      const notifications = JSON.parse(storedNotifications);
+      
+      // Update notification
+      const updatedNotifications = notifications.map(notification => {
+        if (notification.id === notificationId) {
+          return { ...notification, read: true };
+        }
+        return notification;
+      });
+      
+      // Save updated notifications
+      localStorage.setItem(`bloodlink_notifications_${userId}`, JSON.stringify(updatedNotifications));
+      
+      return true;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return false;
+    }
+  }
 };
 
 import { adminService } from "./adminService";
+
+export default mockDbService;
