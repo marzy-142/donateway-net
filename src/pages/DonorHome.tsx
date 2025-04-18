@@ -1,13 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Droplet, Calendar, Bell, Award, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { Droplet, Calendar, Bell, Award, ClipboardCheck, AlertTriangle, Clock, Heart } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { mockDbService } from '@/services/mockDbService';
 import { Donor } from '@/types';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import StatsCard from '@/components/dashboard/StatsCard';
+import { Button } from '@/components/ui/button';
 
 const DonorHome: React.FC = () => {
   const { user } = useAuth();
@@ -21,14 +22,12 @@ const DonorHome: React.FC = () => {
       
       setLoading(true);
       try {
-        // Fetch donor profile
         const donors = await mockDbService.getDonors();
         const currentDonor = donors.find(donor => donor.userId === user.id);
         
         if (currentDonor) {
           setDonorData(currentDonor);
           
-          // Fetch referrals for this donor
           const allReferrals = await mockDbService.getReferrals();
           const myReferrals = allReferrals.filter(ref => ref.donorId === currentDonor.id);
           setReferrals(myReferrals);
@@ -58,146 +57,148 @@ const DonorHome: React.FC = () => {
     );
   }
 
+  const donationStats = {
+    totalDonations: referrals.filter(r => r.status === 'completed').length,
+    lastDonation: donorData?.lastDonationDate ? new Date(donorData.lastDonationDate).toLocaleDateString() : 'No donations yet',
+    pendingRequests: referrals.filter(r => r.status === 'pending').length,
+    nextEligibleDate: donorData?.lastDonationDate ? 
+      new Date(new Date(donorData.lastDonationDate).setMonth(new Date(donorData.lastDonationDate).getMonth() + 3)).toLocaleDateString() 
+      : 'Available now'
+  };
+
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <div className="flex items-center mb-8">
-          <Droplet className="h-8 w-8 mr-2 text-bloodlink-red" />
-          <h1 className="text-2xl font-bold">Donor Dashboard</h1>
-        </div>
-        
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-bloodlink-red mb-2">Welcome, {user?.name || 'Donor'}</h2>
-          <p className="text-gray-600">Thank you for your commitment to saving lives through blood donation.</p>
-          
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Droplet className="h-8 w-8 text-bloodlink-red" />
+              <div>
+                <h1 className="text-2xl font-bold">Donor Dashboard</h1>
+                <p className="text-muted-foreground">
+                  Welcome back, {user?.name || 'Donor'}
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline"
+              className="gap-2"
+              disabled={!donorData?.isAvailable}
+              onClick={() => toast.info("Scheduling system coming soon!")}
+            >
+              <Calendar className="h-4 w-4" />
+              Schedule Donation
+            </Button>
+          </div>
+
           {donorData && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-100">
-              <h3 className="font-medium text-bloodlink-red">Your Donor Profile</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div>
-                  <p className="text-sm text-gray-500">Blood Type</p>
-                  <p className="font-medium">{donorData.bloodType}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <p className="font-medium flex items-center">
-                    {donorData.isAvailable ? (
-                      <Badge className="bg-green-500">Available</Badge>
-                    ) : (
-                      <Badge className="bg-amber-500">Not Available</Badge>
-                    )}
-                  </p>
-                </div>
-                {donorData.lastDonationDate && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                title="Total Donations"
+                value={donationStats.totalDonations}
+                icon={Heart}
+                description="Lives impacted through your contributions"
+              />
+              <StatsCard
+                title="Last Donation"
+                value={donationStats.lastDonation}
+                icon={Clock}
+                description="Your most recent blood donation"
+              />
+              <StatsCard
+                title="Pending Requests"
+                value={donationStats.pendingRequests}
+                icon={Bell}
+                description="Awaiting your response"
+              />
+              <StatsCard
+                title="Next Eligible Date"
+                value={donationStats.nextEligibleDate}
+                icon={Calendar}
+                description="When you can donate again"
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle>Your Donor Profile</CardTitle>
+                <CardDescription>Your current donation status and information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Last Donation</p>
-                    <p className="font-medium">{new Date(donorData.lastDonationDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-muted-foreground">Blood Type</p>
+                    <Badge className="mt-1 bg-bloodlink-red">{donorData?.bloodType}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    {donorData?.isAvailable ? (
+                      <Badge className="bg-green-500">Available to Donate</Badge>
+                    ) : (
+                      <Badge variant="secondary">Cooling Period</Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-bloodlink-red" />
+                  Urgent Needs
+                </CardTitle>
+                <CardDescription>Critical blood type requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {donorData && (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
+                      <p className="text-sm font-medium text-red-800">
+                        Your blood type {donorData.bloodType} is currently needed!
+                      </p>
+                      <p className="text-xs text-red-600 mt-1">
+                        3 urgent requests in your area
+                      </p>
+                    </div>
+                    <Button className="w-full" variant="destructive">
+                      Respond to Request
+                    </Button>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-          
+              </CardContent>
+            </Card>
+          </div>
+
           {referrals.length > 0 && (
-            <div className="mt-4 p-4 bg-bloodlink-pink/10 rounded-md border border-bloodlink-pink">
-              <h3 className="font-medium text-bloodlink-red flex items-center">
-                <Bell className="h-4 w-4 mr-1" />
-                Referral Notifications
-              </h3>
-              {referrals.map(ref => (
-                <div key={ref.id} className="mt-2 p-2 bg-white rounded border border-gray-200">
-                  <p className="text-sm">
-                    <strong>Status:</strong> {ref.status === 'approved' ? 
-                      <span className="text-green-600 font-medium">Approved</span> : 
-                      <span className="text-amber-600 font-medium">Pending</span>
-                    }
-                  </p>
-                  <p className="text-sm">
-                    <strong>Hospital:</strong> {ref.hospitalName || 'Local Hospital'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Created: {new Date(ref.createdAt).toLocaleDateString()}
-                  </p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Referrals</CardTitle>
+                <CardDescription>Your latest donation matches and requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {referrals.map(ref => (
+                    <div key={ref.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{ref.hospitalName || 'Local Hospital'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Created: {new Date(ref.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge 
+                        className={ref.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'}
+                      >
+                        {ref.status.charAt(0).toUpperCase() + ref.status.slice(1)}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </CardContent>
+            </Card>
           )}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-bloodlink-pink to-bloodlink-darkpink">
-              <CardTitle className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-bloodlink-red" />
-                Schedule Donation
-              </CardTitle>
-              <CardDescription>Book your next appointment</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p>Choose a convenient time and location for your next blood donation.</p>
-              <button className="mt-4 px-3 py-1 bg-bloodlink-red text-white text-sm rounded hover:bg-bloodlink-red/90">
-                Check Availability
-              </button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-bloodlink-pink to-bloodlink-darkpink">
-              <CardTitle className="flex items-center">
-                <ClipboardCheck className="h-5 w-5 mr-2 text-bloodlink-red" />
-                Donation Status
-              </CardTitle>
-              <CardDescription>Track your donations</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p>View the status of your recent donations and see if they've been matched to recipients.</p>
-              {referrals.length > 0 ? (
-                <p className="mt-2 text-sm font-medium text-bloodlink-red">
-                  You have {referrals.filter(r => r.status === 'pending').length} pending referrals
-                </p>
-              ) : (
-                <p className="mt-2 text-sm text-gray-500">No active referrals</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-bloodlink-pink to-bloodlink-darkpink">
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-bloodlink-red" />
-                Urgent Needs
-              </CardTitle>
-              <CardDescription>Critical blood needs</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p>Critical blood type needs in your area that match your blood type.</p>
-              {donorData && (
-                <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded-md">
-                  <p className="text-sm font-medium text-red-700">
-                    <span className="inline-block w-2 h-2 bg-red-600 rounded-full mr-2"></span>
-                    {donorData.bloodType} urgently needed at City Hospital
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-bloodlink-pink to-bloodlink-darkpink">
-              <CardTitle className="flex items-center">
-                <Award className="h-5 w-5 mr-2 text-bloodlink-red" />
-                Your Impact
-              </CardTitle>
-              <CardDescription>Lives you've helped</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p>See the impact of your donations and how many lives you've potentially saved.</p>
-              <div className="mt-3">
-                <p className="text-2xl font-bold text-bloodlink-red">{referrals.filter(r => r.status === 'completed').length}</p>
-                <p className="text-sm text-gray-600">Successful donations</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </Layout>
