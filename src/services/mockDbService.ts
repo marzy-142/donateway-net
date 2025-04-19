@@ -1,5 +1,4 @@
-
-import { Donor, Hospital, Recipient, User, BloodType, Referral, Notification } from "@/types";
+import { Donor, Hospital, Recipient, User, BloodType, Referral, Notification, Appointment } from "@/types";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 
@@ -398,6 +397,66 @@ export const mockDbService = {
     } catch (error) {
       console.error("Error marking notification as read:", error);
       return false;
+    }
+  },
+
+  getAppointments: async (): Promise<Appointment[]> => {
+    try {
+      const storedAppointments = localStorage.getItem('bloodlink_appointments');
+      if (storedAppointments) {
+        return JSON.parse(storedAppointments).map((appointment: any) => ({
+          ...appointment,
+          date: new Date(appointment.date),
+          createdAt: new Date(appointment.createdAt)
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      return [];
+    }
+  },
+
+  createAppointment: async (appointmentData: {
+    hospitalId: string,
+    userId: string,
+    date: Date,
+    timeSlot: string,
+    status: 'scheduled' | 'completed' | 'cancelled'
+  }): Promise<Appointment> => {
+    try {
+      const appointments = await mockDbService.getAppointments();
+      
+      // Check for existing appointment at the same time
+      const existingAppointment = appointments.find(
+        app => app.hospitalId === appointmentData.hospitalId && 
+        app.date.toDateString() === appointmentData.date.toDateString() && 
+        app.timeSlot === appointmentData.timeSlot
+      );
+      
+      if (existingAppointment) {
+        throw new Error("This time slot is already booked");
+      }
+
+      const newAppointment: Appointment = {
+        id: `appointment-${Date.now()}`,
+        ...appointmentData,
+        createdAt: new Date()
+      };
+
+      appointments.push(newAppointment);
+      localStorage.setItem('bloodlink_appointments', JSON.stringify(appointments));
+
+      // Add notification for the donor
+      mockDbService.addNotification(
+        appointmentData.userId,
+        `Appointment scheduled successfully for ${appointmentData.date.toLocaleDateString()} at ${appointmentData.timeSlot}`
+      );
+
+      return newAppointment;
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      throw error;
     }
   }
 };

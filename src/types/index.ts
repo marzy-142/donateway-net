@@ -1,4 +1,3 @@
-
 export type UserRole = 'donor' | 'recipient' | 'hospital' | 'admin';
 
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
@@ -61,5 +60,15 @@ export interface Notification {
   id: string;
   message: string;
   read: boolean;
+  createdAt: Date;
+}
+
+export interface Appointment {
+  id: string;
+  userId: string;
+  hospitalId: string;
+  date: Date;
+  timeSlot: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
   createdAt: Date;
 }

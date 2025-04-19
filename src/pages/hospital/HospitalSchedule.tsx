@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Hospital } from '@/types';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
 
 const HospitalSchedule = () => {
   const { hospitalId } = useParams();
@@ -19,6 +20,7 @@ const HospitalSchedule = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [timeSlot, setTimeSlot] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchHospital = async () => {
@@ -53,6 +55,7 @@ const HospitalSchedule = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await mockDbService.createAppointment({
         hospitalId,
@@ -62,11 +65,13 @@ const HospitalSchedule = () => {
         status: 'scheduled'
       });
       
-      toast.success(`Appointment scheduled at ${hospital.name} for ${date.toLocaleDateString()} at ${timeSlot}`);
+      toast.success(`Appointment scheduled at ${hospital.name} for ${format(date, 'PPP')} at ${timeSlot}`);
       navigate('/donor');
     } catch (error) {
       console.error('Error scheduling appointment:', error);
-      toast.error("Failed to schedule appointment");
+      toast.error(error instanceof Error ? error.message : "Failed to schedule appointment");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,7 +99,10 @@ const HospitalSchedule = () => {
                 mode="single"
                 selected={date}
                 onSelect={setDate}
-                disabled={(date) => date < new Date() || date > new Date().setMonth(new Date().getMonth() + 2)}
+                disabled={(date) => 
+                  date < new Date() || 
+                  date > new Date(new Date().setMonth(new Date().getMonth() + 2))
+                }
                 className="rounded-md border"
               />
             </div>
@@ -118,9 +126,9 @@ const HospitalSchedule = () => {
             <Button 
               onClick={handleSchedule} 
               className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
-              disabled={!date || !timeSlot}
+              disabled={!date || !timeSlot || isSubmitting}
             >
-              Schedule Donation
+              {isSubmitting ? 'Scheduling...' : 'Schedule Donation'}
             </Button>
           </CardContent>
         </Card>
