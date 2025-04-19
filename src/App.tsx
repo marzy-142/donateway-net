@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -24,6 +23,7 @@ import CompleteRecipientProfile from './pages/recipient/CompleteRecipientProfile
 import RecipientHome from './pages/recipient/RecipientHome';
 import HospitalHome from './pages/hospital/HospitalHome';
 import AdminHome from './pages/admin/AdminHome';
+import HospitalSchedule from './pages/hospital/HospitalSchedule';
 
 // ProfileCheck routes users to complete their profile if needed
 const ProfileCheck = ({ children }: { children: React.ReactNode }) => {
@@ -57,6 +57,16 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/about" element={<About />} />
           <Route path="/hospitals" element={<Hospitals />} />
+          
+          {/* Add the new hospital schedule route */}
+          <Route 
+            path="/hospitals/:hospitalId/schedule" 
+            element={
+              <ProtectedRoute roles={['donor']}>
+                <HospitalSchedule />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Protected Routes */}
           <Route 
