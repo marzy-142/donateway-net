@@ -58,9 +58,9 @@ const App = () => {
           <Route path="/about" element={<About />} />
           <Route path="/hospitals" element={<Hospitals />} />
           
-          {/* Add the new hospital schedule route */}
+          {/* Update the hospital schedule route */}
           <Route 
-            path="/hospitals/:hospitalId/schedule" 
+            path="/hospital/:hospitalId/schedule" 
             element={
               <ProtectedRoute roles={['donor']}>
                 <HospitalSchedule />

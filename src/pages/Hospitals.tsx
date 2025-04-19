@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Hospital } from '@/types';
 import { mockDbService } from '@/services/mockDbService';
-import { Building2, Phone, MapPin, Droplet } from 'lucide-react';
+import { Building2, MapPin, Droplet } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -63,7 +62,7 @@ const Hospitals: React.FC = () => {
       return;
     }
     
-    navigate(`/hospitals/${hospitalId}/schedule`);
+    navigate(`/hospital/${hospitalId}/schedule`);
   };
 
   return (
@@ -139,11 +138,6 @@ const Hospitals: React.FC = () => {
                         <span>{hospital.location}</span>
                       </div>
                       
-                      <div className="flex items-start gap-2">
-                        <Phone className="h-5 w-5 text-bloodlink-red shrink-0 mt-0.5" />
-                        <span>{hospital.phone}</span>
-                      </div>
-                      
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <Droplet className="h-5 w-5 text-bloodlink-red" />
@@ -162,21 +156,12 @@ const Hospitals: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="pt-4 flex gap-4">
+                      <div className="pt-4">
                         <Button 
-                          onClick={() => handleCall(hospital.phone)} 
-                          className="flex-1 bg-bloodlink-red hover:bg-bloodlink-red/80"
+                          onClick={() => handleSchedule(hospital.id)}
+                          className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
                         >
-                          <Phone className="h-4 w-4 mr-2" />
-                          Call
-                        </Button>
-                        
-                        <Button 
-                          onClick={() => handleSchedule(hospital.id)} 
-                          variant="outline" 
-                          className="flex-1 border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10"
-                        >
-                          Schedule
+                          Schedule Donation
                         </Button>
                       </div>
                     </div>
