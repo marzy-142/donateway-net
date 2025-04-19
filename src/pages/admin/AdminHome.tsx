@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -13,6 +12,7 @@ import HospitalManagement from '@/components/admin/HospitalManagement';
 import SystemAlerts from '@/components/admin/SystemAlerts';
 import AnalyticsDisplay from '@/components/admin/AnalyticsDisplay';
 import EventsManagement from '@/components/admin/EventsManagement';
+import AppointmentsManagement from '@/components/admin/AppointmentsManagement';
 
 const AdminHome: React.FC = () => {
   const { user } = useAuth();
@@ -29,12 +29,12 @@ const AdminHome: React.FC = () => {
   const [hospitals, setHospitals] = useState([]);
   const [events, setEvents] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
       setLoading(true);
       try {
-        // Fetch analytics data
         const analytics = await adminService.getAnalyticsData();
         setAnalyticsData(analytics);
         setStats({
@@ -44,21 +44,20 @@ const AdminHome: React.FC = () => {
           completedDonations: analytics.stats.completedDonations
         });
         
-        // Fetch users
         const usersData = await adminService.getAllUsers();
         setUsers(usersData);
         
-        // Fetch hospitals
         const hospitalsData = await adminService.getAllHospitals();
         setHospitals(hospitalsData);
         
-        // Fetch events
         const eventsData = await adminService.getUpcomingEvents();
         setEvents(eventsData);
         
-        // Fetch alerts
         const alertsData = await adminService.getSystemAlerts();
         setAlerts(alertsData);
+        
+        const appointmentsData = await adminService.getAllAppointments();
+        setAppointments(appointmentsData);
       } catch (error) {
         console.error("Error fetching admin data:", error);
       } finally {
@@ -68,6 +67,19 @@ const AdminHome: React.FC = () => {
     
     fetchAdminData();
   }, []);
+
+  const handleUpdateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled') => {
+    const success = await adminService.updateAppointmentStatus(appointmentId, status);
+    if (success) {
+      setAppointments(prevAppointments =>
+        prevAppointments.map(appointment =>
+          appointment.id === appointmentId
+            ? { ...appointment, status }
+            : appointment
+        )
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -102,7 +114,6 @@ const AdminHome: React.FC = () => {
           <p className="text-gray-600">Manage and oversee the blood donation system from this central dashboard.</p>
         </div>
         
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 flex items-center">
@@ -153,12 +164,12 @@ const AdminHome: React.FC = () => {
           </Card>
         </div>
         
-        {/* Main Content Tabs */}
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
+            <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
@@ -260,6 +271,13 @@ const AdminHome: React.FC = () => {
           
           <TabsContent value="hospitals">
             <HospitalManagement hospitals={hospitals} />
+          </TabsContent>
+          
+          <TabsContent value="appointments">
+            <AppointmentsManagement 
+              appointments={appointments} 
+              onUpdateStatus={handleUpdateAppointmentStatus}
+            />
           </TabsContent>
           
           <TabsContent value="analytics">
