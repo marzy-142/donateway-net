@@ -1,63 +1,69 @@
-
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Droplet } from 'lucide-react';
-import { UserRole } from '@/types';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Droplet } from "lucide-react";
+import { UserRole } from "@/types";
+import { toast } from "sonner";
 
 const Register: React.FC = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('donor');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("donor");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
+    setError("");
+
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await register(email, password, name, role);
-      
+
       // Redirect based on role
       switch (role) {
-        case 'donor':
-          navigate('/donor/complete-profile');
+        case "donor":
+          navigate("/donor/complete-profile");
           break;
-        case 'recipient':
-          navigate('/recipient/complete-profile');
+        case "recipient":
+          navigate("/recipient/complete-profile");
           break;
-        case 'hospital':
-          navigate('/hospital');
+        case "hospital":
+          navigate("/hospital");
           break;
-        case 'admin':
-          navigate('/dashboard');
+        case "admin":
+          navigate("/dashboard");
           break;
         default:
-          navigate('/');
+          navigate("/");
           break;
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      setError(error instanceof Error ? error.message : 'Registration failed');
+      console.error("Registration error:", error);
+      setError(error instanceof Error ? error.message : "Registration failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +76,9 @@ const Register: React.FC = () => {
           <div className="flex justify-center mb-4">
             <Droplet className="h-12 w-12 text-bloodlink-red" />
           </div>
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Create an account
+          </CardTitle>
           <CardDescription>
             Enter your information to create your BloodLink account
           </CardDescription>
@@ -78,7 +86,10 @@ const Register: React.FC = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
                 Full Name
               </label>
               <Input
@@ -90,14 +101,17 @@ const Register: React.FC = () => {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
                 Email
               </label>
               <Input
                 id="email"
-                type="email" 
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="m@example.com"
@@ -105,9 +119,12 @@ const Register: React.FC = () => {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
                 Password
               </label>
               <Input
@@ -120,9 +137,12 @@ const Register: React.FC = () => {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
                 Confirm Password
               </label>
               <Input
@@ -135,11 +155,13 @@ const Register: React.FC = () => {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">I am registering as</label>
-              <RadioGroup 
-                value={role} 
+              <label className="text-sm font-medium leading-none">
+                I am registering as
+              </label>
+              <RadioGroup
+                value={role}
                 onValueChange={(value) => setRole(value as UserRole)}
                 className="flex flex-wrap gap-2 pt-2"
               >
@@ -152,22 +174,16 @@ const Register: React.FC = () => {
                   <Label htmlFor="recipient">Recipient</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="hospital" id="hospital" />
-                  <Label htmlFor="hospital">Hospital</Label>
-                </div>
-                <div className="flex items-center space-x-2">
                   <RadioGroupItem value="admin" id="admin" />
                   <Label htmlFor="admin">Admin</Label>
                 </div>
               </RadioGroup>
             </div>
-            
-            {error && (
-              <div className="text-sm text-red-500">{error}</div>
-            )}
-            
-            <Button 
-              type="submit" 
+
+            {error && <div className="text-sm text-red-500">{error}</div>}
+
+            <Button
+              type="submit"
               className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
               disabled={isSubmitting}
             >
@@ -177,14 +193,14 @@ const Register: React.FC = () => {
                   Creating account...
                 </span>
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-center mt-2">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link to="/login" className="text-bloodlink-red hover:underline">
               Sign in
             </Link>

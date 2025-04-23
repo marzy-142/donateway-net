@@ -84,12 +84,12 @@ const Index: React.FC = () => {
       <section className="py-16">
         <div className="container px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tighter">
+            {/* <h2 className="text-3xl font-bold tracking-tighter">
               How BloodLink Works
-            </h2>
-            <p className="text-gray-600 mt-2">
+            </h2> */}
+            {/* <p className="text-gray-600 mt-2">
               Simple, secure, and life-saving
-            </p>
+            </p> */}
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">

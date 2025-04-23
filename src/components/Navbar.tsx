@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Droplet, Menu, X } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Droplet, Menu, X } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -31,56 +31,96 @@ const Navbar: React.FC = () => {
             Blood<span className="text-bloodlink-red">Link</span>
           </span>
         </Link>
-        
+
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4">
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link to="/" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                <Link
+                  to="/"
+                  className={cn(navigationMenuTriggerStyle(), "bg-transparent")}
+                >
                   Home
                 </Link>
               </NavigationMenuItem>
-              
+
               <NavigationMenuItem>
-                <Link to="/about" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                <Link
+                  to="/about"
+                  className={cn(navigationMenuTriggerStyle(), "bg-transparent")}
+                >
                   About
                 </Link>
               </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/hospitals" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
-                  Hospitals
-                </Link>
-              </NavigationMenuItem>
-              
+
+              {user?.role !== "admin" && (
+                <NavigationMenuItem>
+                  <Link
+                    to="/hospitals"
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      "bg-transparent"
+                    )}
+                  >
+                    Hospitals
+                  </Link>
+                </NavigationMenuItem>
+              )}
+
               {isAuthenticated && (
                 <>
-                  {user?.role === 'admin' && (
+                  {user?.role === "admin" && (
                     <>
                       <NavigationMenuItem>
-                        <Link to="/dashboard" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                        <Link
+                          to="/dashboard"
+                          className={cn(
+                            navigationMenuTriggerStyle(),
+                            "bg-transparent"
+                          )}
+                        >
                           Dashboard
                         </Link>
                       </NavigationMenuItem>
                       <NavigationMenuItem>
-                        <Link to="/matches" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                        <Link
+                          to="/matches"
+                          className={cn(
+                            navigationMenuTriggerStyle(),
+                            "bg-transparent"
+                          )}
+                        >
                           Matches
                         </Link>
                       </NavigationMenuItem>
                     </>
                   )}
-                  
-                  {(user?.role === 'donor' || user?.role === 'recipient' || user?.role === 'admin') && (
+
+                  {(user?.role === "donor" ||
+                    user?.role === "recipient" ||
+                    user?.role === "admin") && (
                     <NavigationMenuItem>
-                      <Link to="/referrals" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                      <Link
+                        to="/referrals"
+                        className={cn(
+                          navigationMenuTriggerStyle(),
+                          "bg-transparent"
+                        )}
+                      >
                         Referrals
                       </Link>
                     </NavigationMenuItem>
                   )}
-                  
+
                   <NavigationMenuItem>
-                    <Link to="/profile" className={cn(navigationMenuTriggerStyle(), "bg-transparent")}>
+                    <Link
+                      to="/profile"
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        "bg-transparent"
+                      )}
+                    >
                       Profile
                     </Link>
                   </NavigationMenuItem>
@@ -88,11 +128,11 @@ const Navbar: React.FC = () => {
               )}
             </NavigationMenuList>
           </NavigationMenu>
-          
+
           <div className="flex items-center space-x-2">
             {isAuthenticated ? (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => logout()}
                 className="text-bloodlink-red hover:bg-bloodlink-red/10 border border-bloodlink-red"
               >
@@ -101,11 +141,14 @@ const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" className="border border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10">
+                  <Button
+                    variant="ghost"
+                    className="border border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10"
+                  >
                     Login
                   </Button>
                 </Link>
-                
+
                 <Link to="/register">
                   <Button className="bg-bloodlink-red hover:bg-bloodlink-red/80">
                     Register
@@ -115,9 +158,9 @@ const Navbar: React.FC = () => {
             )}
           </div>
         </nav>
-        
+
         {/* Mobile Menu Button */}
-        <button 
+        <button
           className="md:hidden text-gray-700 hover:text-bloodlink-red focus:outline-none"
           onClick={toggleMobileMenu}
         >
@@ -128,49 +171,82 @@ const Navbar: React.FC = () => {
           )}
         </button>
       </div>
-      
+
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b">
           <div className="container px-4 py-3 space-y-3">
-            <Link to="/" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+            <Link
+              to="/"
+              className="block py-2 hover:text-bloodlink-red"
+              onClick={toggleMobileMenu}
+            >
               Home
             </Link>
-            <Link to="/about" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+            <Link
+              to="/about"
+              className="block py-2 hover:text-bloodlink-red"
+              onClick={toggleMobileMenu}
+            >
               About
             </Link>
-            <Link to="/hospitals" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
-              Hospitals
-            </Link>
-            
+
+            {user?.role !== "admin" && (
+              <Link
+                to="/hospitals"
+                className="block py-2 hover:text-bloodlink-red"
+                onClick={toggleMobileMenu}
+              >
+                Hospitals
+              </Link>
+            )}
+
             {isAuthenticated && (
               <>
-                {user?.role === 'admin' && (
+                {user?.role === "admin" && (
                   <>
-                    <Link to="/dashboard" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+                    <Link
+                      to="/dashboard"
+                      className="block py-2 hover:text-bloodlink-red"
+                      onClick={toggleMobileMenu}
+                    >
                       Dashboard
                     </Link>
-                    <Link to="/matches" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+                    <Link
+                      to="/matches"
+                      className="block py-2 hover:text-bloodlink-red"
+                      onClick={toggleMobileMenu}
+                    >
                       Matches
                     </Link>
                   </>
                 )}
-                
-                {(user?.role === 'donor' || user?.role === 'recipient' || user?.role === 'admin') && (
-                  <Link to="/referrals" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+
+                {(user?.role === "donor" ||
+                  user?.role === "recipient" ||
+                  user?.role === "admin") && (
+                  <Link
+                    to="/referrals"
+                    className="block py-2 hover:text-bloodlink-red"
+                    onClick={toggleMobileMenu}
+                  >
                     Referrals
                   </Link>
                 )}
-                
-                <Link to="/profile" className="block py-2 hover:text-bloodlink-red" onClick={toggleMobileMenu}>
+
+                <Link
+                  to="/profile"
+                  className="block py-2 hover:text-bloodlink-red"
+                  onClick={toggleMobileMenu}
+                >
                   Profile
                 </Link>
               </>
             )}
-            
+
             <div className="pt-3 border-t flex flex-col space-y-2">
               {isAuthenticated ? (
-                <Button 
+                <Button
                   onClick={() => {
                     logout();
                     toggleMobileMenu();
@@ -181,13 +257,24 @@ const Navbar: React.FC = () => {
                 </Button>
               ) : (
                 <>
-                  <Link to="/login" className="w-full" onClick={toggleMobileMenu}>
-                    <Button variant="outline" className="w-full border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10">
+                  <Link
+                    to="/login"
+                    className="w-full"
+                    onClick={toggleMobileMenu}
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full border-bloodlink-red text-bloodlink-red hover:bg-bloodlink-red/10"
+                    >
                       Login
                     </Button>
                   </Link>
-                  
-                  <Link to="/register" className="w-full" onClick={toggleMobileMenu}>
+
+                  <Link
+                    to="/register"
+                    className="w-full"
+                    onClick={toggleMobileMenu}
+                  >
                     <Button className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80">
                       Register
                     </Button>
