@@ -138,9 +138,7 @@ const Referrals: React.FC = () => {
     return new Date(date).toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: '2-digit'
     });
   };
 
@@ -201,6 +199,13 @@ const Referrals: React.FC = () => {
                     onClick={() => setFilterStatus('pending')}
                   >
                     <Clock className="h-4 w-4 mr-2" /> Pending
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className={`${filterStatus === 'scheduled' ? 'bg-blue-100 border-blue-400 text-blue-700' : ''}`}
+                    onClick={() => setFilterStatus('scheduled')}
+                  >
+                    <Clock className="h-4 w-4 mr-2" /> Scheduled
                   </Button>
                   <Button 
                     variant="outline"
@@ -273,8 +278,48 @@ const Referrals: React.FC = () => {
                                 {hospitalName}
                               </div>
                               
+                              {referral.transfusionDetails && (
+                                <div className="col-span-2 mt-2 p-3 bg-blue-50 rounded-md">
+                                  <h3 className="text-sm font-semibold text-blue-800 mb-2">Transfusion Schedule</h3>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                      <span className="text-blue-700">Date:</span>{' '}
+                                      {referral.transfusionDetails.scheduledDate && formatDate(referral.transfusionDetails.scheduledDate)}
+                                    </div>
+                                    {referral.transfusionDetails.scheduledTime && (
+                                      <div>
+                                        <span className="text-blue-700">Time:</span>{' '}
+                                        {referral.transfusionDetails.scheduledTime}
+                                      </div>
+                                    )}
+                                    {referral.transfusionDetails.hospitalLocation && (
+                                      <div>
+                                        <span className="text-blue-700">Location:</span>{' '}
+                                        {referral.transfusionDetails.hospitalLocation}
+                                      </div>
+                                    )}
+                                    {referral.transfusionDetails.roomNumber && (
+                                      <div>
+                                        <span className="text-blue-700">Room:</span>{' '}
+                                        {referral.transfusionDetails.roomNumber}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {referral.transfusionDetails.preparationInstructions && (
+                                    <div className="mt-2">
+                                      <span className="text-blue-700 text-sm">Preparation:</span>
+                                      <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
+                                        {referral.transfusionDetails.preparationInstructions.map((instruction, index) => (
+                                          <li key={index}>{instruction}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
                               <div className="text-gray-500 text-sm">
-                                Created: {formatDate(new Date(referral.createdAt))}
+                                Created: {formatDate(referral.createdAt)}
                               </div>
                             </div>
                           </div>
@@ -293,6 +338,45 @@ const Referrals: React.FC = () => {
                             
                             {user.role === 'admin' && referral.status === 'pending' && (
                               <div className="flex gap-2 mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-500 text-blue-700 hover:bg-blue-50"
+                                  onClick={() => {
+                                    const scheduledDate = prompt('Enter scheduled date (YYYY-MM-DD)');
+                                    if (!scheduledDate) return;
+                                    
+                                    const scheduledTime = prompt('Enter scheduled time (HH:MM)');
+                                    if (!scheduledTime) return;
+                                    
+                                    const roomNumber = prompt('Enter room number');
+                                    if (!roomNumber) return;
+                                    
+                                    const hospitalLocation = prompt('Enter hospital location (department/wing)');
+                                    if (!hospitalLocation) return;
+                                    
+                                    const preparationInstructions = prompt('Enter preparation instructions (comma-separated)');
+                                    
+                                    adminService.updateReferralDetails(referral.id, {
+                                      scheduledDate: new Date(scheduledDate),
+                                      scheduledTime,
+                                      roomNumber,
+                                      hospitalLocation,
+                                      preparationInstructions: preparationInstructions ? preparationInstructions.split(',').map(i => i.trim()) : undefined,
+                                    }).then(() => {
+                                      toast.success('Transfusion schedule updated');
+                                      // Refresh the referrals list
+                                      mockDbService.getReferrals().then(setReferrals);
+                                    }).catch(error => {
+                                      console.error('Error updating schedule:', error);
+                                      toast.error('Failed to update schedule');
+                                    });
+                                  }}
+                                >
+                                  <Clock className="h-4 w-4 mr-2" />
+                                  Set Schedule
+                                </Button>
+                                
                                 <Button 
                                   variant="outline" 
                                   size="sm"

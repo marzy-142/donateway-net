@@ -31,10 +31,24 @@ const Matches: React.FC = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const donorsData = await mockDbService.getDonors();
-        setDonors(donorsData);
+        const [donorsData, hospitalsData, referralsData] = await Promise.all([
+          mockDbService.getDonors(),
+          mockDbService.getHospitals(),
+          mockDbService.getReferrals()
+        ]);
+
+        // Filter out donors who have completed referrals
+        const completedDonorIds = new Set(
+          referralsData
+            .filter(ref => ref.status === "completed")
+            .map(ref => ref.donorId)
+        );
         
-        const hospitalsData = await mockDbService.getHospitals();
+        const availableDonors = donorsData.filter(
+          donor => donor.isAvailable && !completedDonorIds.has(donor.id)
+        );
+
+        setDonors(availableDonors);
         setHospitals(hospitalsData);
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -48,20 +62,47 @@ const Matches: React.FC = () => {
 
   const fetchCompatibleRecipients = async (donorId: string) => {
     try {
+      console.log('Fetching compatible recipients for donor:', donorId);
       const donor = donors.find(d => d.id === donorId);
-      if (!donor) return;
+      if (!donor) {
+        console.error('Donor not found in fetchCompatibleRecipients');
+        return;
+      }
+      
+      // Check if donor has any completed referrals
+      const referrals = await mockDbService.getReferrals();
+      console.log('Got referrals:', referrals);
+      const donorHasCompletedReferral = referrals.some(
+        ref => ref.donorId === donorId && ref.status === "completed"
+      );
+      console.log('Donor has completed referral:', donorHasCompletedReferral);
+
+      // If donor has completed referrals, don't show them as available
+      if (donorHasCompletedReferral) {
+        toast.error("This donor has already completed a donation and is not currently available");
+        return;
+      }
       
       setSelectedDonor(donor);
       
       const recipients = await mockDbService.getCompatibleRecipients(donor.bloodType);
+      console.log('Got compatible recipients:', recipients);
       setCompatibleRecipients(recipients);
     } catch (error) {
       console.error('Error fetching compatible recipients:', error);
     }
   };
 
-  const handleDonorSelect = (donorId: string) => {
-    fetchCompatibleRecipients(donorId);
+  const handleDonorSelect = async (donorId: string) => {
+    console.log('Selecting donor:', donorId);
+    const donor = donors.find(d => d.id === donorId);
+    console.log('Found donor:', donor);
+    if (!donor) {
+      console.error('Donor not found');
+      return;
+    }
+    setSelectedDonor(donor);
+    await fetchCompatibleRecipients(donorId);
   };
 
   const handleRecipientSelect = (recipient: Recipient) => {

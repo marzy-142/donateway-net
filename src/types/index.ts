@@ -1,6 +1,6 @@
-export type UserRole = 'donor' | 'recipient' | 'hospital' | 'admin';
+export type UserRole = "donor" | "recipient" | "hospital" | "admin";
 
-export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+export type BloodType = "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
 
 export interface User {
   id: string;
@@ -30,10 +30,12 @@ export interface Recipient {
   userId: string;
   name: string;
   bloodType: BloodType;
+  urgency: "low" | "medium" | "high" | "critical" | "urgent";
+  hospitalName: string;
   phone: string;
-  preferredHospital?: string;
-  urgency: 'normal' | 'urgent' | 'critical';
-  medicalCondition?: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Hospital {
@@ -41,7 +43,36 @@ export interface Hospital {
   name: string;
   location: string;
   phone: string;
-  availableBloodTypes: BloodType[];
+  bloodTypes: BloodType[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface RawReferral {
+  id: string;
+  donorId: string;
+  recipientId: string;
+  hospitalId: string;
+  status: "pending" | "completed" | "cancelled" | "matched" | "scheduled";
+  createdAt: string;
+  updatedAt: string;
+  donorName?: string;
+  donorBloodType?: string;
+  recipientName?: string;
+  hospitalName?: string;
+  transfusionDetails?: {
+    scheduledDate?: string;
+    scheduledTime?: string;
+    hospitalLocation?: string;
+    hospitalContactPerson?: string;
+    hospitalContactNumber?: string;
+    preparationInstructions?: string[];
+    requiredDocuments?: string[];
+    roomNumber?: string;
+    department?: string;
+    estimatedDuration?: string;
+    specialInstructions?: string;
+  };
 }
 
 export interface Referral {
@@ -49,11 +80,26 @@ export interface Referral {
   donorId: string;
   recipientId: string;
   hospitalId: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: "pending" | "completed" | "cancelled" | "matched" | "scheduled";
   createdAt: Date;
+  updatedAt: Date;
   donorName?: string;
+  donorBloodType?: string;
   recipientName?: string;
   hospitalName?: string;
+  transfusionDetails?: {
+    scheduledDate?: Date;
+    scheduledTime?: string;
+    hospitalLocation?: string;
+    hospitalContactPerson?: string;
+    hospitalContactNumber?: string;
+    preparationInstructions?: string[];
+    requiredDocuments?: string[];
+    roomNumber?: string;
+    department?: string;
+    estimatedDuration?: string;
+    specialInstructions?: string;
+  };
 }
 
 export interface Notification {
@@ -61,6 +107,15 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: Date;
+  type?: "system" | "admin_update" | "match" | "referral" | "appointment";
+  metadata?: {
+    donorId?: string;
+    recipientId?: string;
+    hospitalId?: string;
+    referralId?: string;
+    appointmentId?: string;
+    status?: string;
+  };
 }
 
 export interface Appointment {
@@ -69,6 +124,41 @@ export interface Appointment {
   hospitalId: string;
   date: Date;
   timeSlot: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: "scheduled" | "completed" | "cancelled";
   createdAt: Date;
+  // Add these optional fields
+  userName?: string;
+  donorName?: string;
+  hospitalName?: string;
+}
+
+// Add to types.ts
+export interface SystemAlert {
+  id: string;
+  title: string;
+  message: string;
+  severity: "low" | "medium" | "high";
+  createdAt: Date;
+  isActive: boolean;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: Date;
+  location: string;
+  createdAt: Date;
+  isActive: boolean;
+  organizerId?: string; // Admin who created it
+}
+
+export interface Match {
+  id: string;
+  donorId: string;
+  recipientId: string;
+  compatibilityScore: number;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+  updatedAt: string;
 }

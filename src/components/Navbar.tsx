@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Droplet, Menu, X } from "lucide-react";
@@ -17,9 +17,15 @@ import { cn } from "@/lib/utils";
 const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
   };
 
   return (
@@ -133,7 +139,7 @@ const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <Button
                 variant="ghost"
-                onClick={() => logout()}
+                onClick={handleLogout}
                 className="text-bloodlink-red hover:bg-bloodlink-red/10 border border-bloodlink-red"
               >
                 Logout
@@ -247,10 +253,7 @@ const Navbar: React.FC = () => {
             <div className="pt-3 border-t flex flex-col space-y-2">
               {isAuthenticated ? (
                 <Button
-                  onClick={() => {
-                    logout();
-                    toggleMobileMenu();
-                  }}
+                  onClick={handleLogout}
                   className="w-full bg-bloodlink-red hover:bg-bloodlink-red/80"
                 >
                   Logout
